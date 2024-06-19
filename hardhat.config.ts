@@ -1,4 +1,3 @@
-import {eEthereumNetwork} from './helpers/types-common';
 // @ts-ignore
 import {accounts} from './test-wallets.js';
 import {BUIDLEREVM_CHAINID, COVERAGE_CHAINID} from './helpers/constants';
@@ -7,9 +6,11 @@ import {HardhatUserConfig} from 'hardhat/config';
 import 'hardhat-typechain';
 import 'solidity-coverage';
 import '@nomiclabs/hardhat-waffle';
-import '@nomiclabs/hardhat-etherscan';
+import '@nomicfoundation/hardhat-verify';
 import path from 'path';
 import fs from 'fs';
+import dotenv from 'dotenv';
+dotenv.config();
 
 const SKIP_LOAD = process.env.SKIP_LOAD === 'true';
 
@@ -34,6 +35,7 @@ const ETHERSCAN_KEY = process.env.ETHERSCAN_KEY || '';
 const MNEMONIC_PATH = "m/44'/60'/0'/0";
 const MNEMONIC = process.env.MNEMONIC || '';
 const MAINNET_FORK = process.env.MAINNET_FORK === 'true';
+const PRIVATE_KEY = process.env.PRIVATE_KEY || '';
 
 const mainnetFork = MAINNET_FORK
   ? {
@@ -43,26 +45,6 @@ const mainnetFork = MAINNET_FORK
         : `https://main.infura.io/v3/${INFURA_KEY}`,
     }
   : undefined;
-
-const getCommonNetworkConfig = (networkName: eEthereumNetwork, networkId: number) => {
-  return {
-    url: ALCHEMY_KEY
-      ? `https://eth-${
-          networkName === 'main' ? 'mainnet' : networkName
-        }.alchemyapi.io/v2/${ALCHEMY_KEY}`
-      : `https://${networkName}.infura.io/v3/${INFURA_KEY}`,
-    hardfork: HARDFORK,
-    blockGasLimit: DEFAULT_BLOCK_GAS_LIMIT,
-    gasMultiplier: DEFAULT_GAS_PRICE,
-    chainId: networkId,
-    accounts: {
-      mnemonic: MNEMONIC,
-      path: MNEMONIC_PATH,
-      initialIndex: 0,
-      count: 20,
-    },
-  };
-};
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -76,15 +58,29 @@ const config: HardhatUserConfig = {
     outDir: 'types',
   },
   etherscan: {
-    apiKey: ETHERSCAN_KEY,
+    apiKey: {
+      main: "abc" // Set to an empty string or some placeholder
+    },
+    customChains: [
+      {
+        network: "main",
+        chainId: 570,
+        urls: {
+          apiURL: "https://explorer.rollux.com/api",
+          browserURL: "https://explorer.rollux.com/"
+        }
+      }
+    ]
   },
   mocha: {
     timeout: 0,
   },
   networks: {
-    kovan: getCommonNetworkConfig(eEthereumNetwork.kovan, 42),
-    ropsten: getCommonNetworkConfig(eEthereumNetwork.ropsten, 3),
-    main: getCommonNetworkConfig(eEthereumNetwork.main, 1),
+    main:{
+      chainId: 570,
+      url: 'https://rpc.rollux.com',
+      accounts: [PRIVATE_KEY],
+    },
     hardhat: {
       hardfork: 'istanbul',
       blockGasLimit: DEFAULT_BLOCK_GAS_LIMIT,
