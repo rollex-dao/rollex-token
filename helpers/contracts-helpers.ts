@@ -13,9 +13,9 @@ import {fromRpcSig, ECDSASignature} from 'ethereumjs-util';
 import {DoubleTransferHelper} from '../types/DoubleTransferHelper';
 import {MockTransferHook} from '../types/MockTransferHook';
 import {verifyContract} from './etherscan-verification';
-import {AaveToken} from '../types/AaveToken';
-import {AaveTokenV2} from '../types/AaveTokenV2';
-import {LendToAaveMigrator} from '../types/LendToAaveMigrator';
+import {RexToken} from '../types/RexToken';
+import {RexTokenV2} from '../types/RexTokenV2';
+import {PsysToRexMigrator} from '../types/PsysToRexMigrator';
 
 export const registerContractInJsonDb = async (contractId: string, contractInstance: Contract) => {
   const currentNetwork = DRE.network.name;
@@ -76,10 +76,10 @@ export const getContract = async <ContractType extends Contract>(
   address: string
 ): Promise<ContractType> => (await DRE.ethers.getContractAt(contractName, address)) as ContractType;
 
-export const deployAaveToken = async (verify?: boolean) => {
-  const id = eContractid.AaveToken;
+export const deployRexToken = async (verify?: boolean) => {
+  const id = eContractid.RexToken;
   const args: string[] = [];
-  const instance = await deployContract<AaveToken>(id, args);
+  const instance = await deployContract<RexToken>(id, args);
   await instance.deployTransaction.wait();
   if (verify) {
     await verifyContract(id, instance.address, args);
@@ -87,10 +87,10 @@ export const deployAaveToken = async (verify?: boolean) => {
   return instance;
 };
 
-export const deployAaveTokenV2 = async (verify?: boolean): Promise<AaveTokenV2> => {
-  const id = eContractid.AaveTokenV2;
+export const deployRexTokenV2 = async (verify?: boolean): Promise<RexTokenV2> => {
+  const id = eContractid.RexTokenV2;
   const args: string[] = [];
-  const instance = await deployContract<AaveTokenV2>(id, args);
+  const instance = await deployContract<RexTokenV2>(id, args);
   await instance.deployTransaction.wait();
   if (verify) {
     await verifyContract(id, instance.address, args);
@@ -98,12 +98,12 @@ export const deployAaveTokenV2 = async (verify?: boolean): Promise<AaveTokenV2> 
   return instance;
 };
 
-export const deployLendToAaveMigrator = async (
-  [aaveToken, lendToken, aaveLendRatio]: [tEthereumAddress, tEthereumAddress, string],
+export const deployPsysToRexMigrator = async (
+  [rexToken, psysToken, rexPsysRatio]: [tEthereumAddress, tEthereumAddress, string],
   verify?: boolean
 ) => {
-  const id = eContractid.LendToAaveMigrator;
-  const args: string[] = [aaveToken, lendToken, aaveLendRatio];
+  const id = eContractid.PsysToRexMigrator;
+  const args: string[] = [rexToken, psysToken, rexPsysRatio];
   const instance = await deployContract<any>(id, args);
   await instance.deployTransaction.wait();
   if (verify) {
@@ -115,9 +115,9 @@ export const deployLendToAaveMigrator = async (
 export const deployMintableErc20 = async ([name, symbol, decimals]: [string, string, number]) =>
   await deployContract<MintableErc20>(eContractid.MintableErc20, [name, symbol, decimals]);
 
-export const deployDoubleTransferHelper = async (aaveToken: tEthereumAddress, verify?: boolean) => {
+export const deployDoubleTransferHelper = async (rexToken: tEthereumAddress, verify?: boolean) => {
   const id = eContractid.DoubleTransferHelper;
-  const args = [aaveToken];
+  const args = [rexToken];
   const instance = await deployContract<DoubleTransferHelper>(id, args);
   await instance.deployTransaction.wait();
   if (verify) {
@@ -140,22 +140,22 @@ export const deployInitializableAdminUpgradeabilityProxy = async (verify?: boole
   return instance;
 };
 
-export const getAaveToken = async (address?: tEthereumAddress) => {
-  return await getContract<AaveToken>(
-    eContractid.AaveToken,
-    address || (await getDb().get(`${eContractid.AaveToken}.${DRE.network.name}`).value()).address
+export const getRexToken = async (address?: tEthereumAddress) => {
+  return await getContract<RexToken>(
+    eContractid.RexToken,
+    address || (await getDb().get(`${eContractid.RexToken}.${DRE.network.name}`).value()).address
   );
 };
 
-export const getAaveTokenImpl = async (address?: tEthereumAddress) => {
-  return await getContract<AaveToken>(
-    eContractid.AaveToken,
+export const getRexTokenImpl = async (address?: tEthereumAddress) => {
+  return await getContract<RexToken>(
+    eContractid.RexToken,
     address ||
-      (await getDb().get(`${eContractid.AaveTokenImpl}.${DRE.network.name}`).value()).address
+      (await getDb().get(`${eContractid.RexTokenImpl}.${DRE.network.name}`).value()).address
   );
 };
 
-export const getLendToken = async (address?: tEthereumAddress) => {
+export const getPsysToken = async (address?: tEthereumAddress) => {
   return await getContract<any>(
     eContractid.MintableErc20,
     address ||
@@ -163,20 +163,20 @@ export const getLendToken = async (address?: tEthereumAddress) => {
   );
 };
 
-export const getLendToAaveMigratorImpl = async (address?: tEthereumAddress) => {
-  return await getContract<LendToAaveMigrator>(
-    eContractid.LendToAaveMigrator,
+export const getPsysToRexMigratorImpl = async (address?: tEthereumAddress) => {
+  return await getContract<PsysToRexMigrator>(
+    eContractid.PsysToRexMigrator,
     address ||
-      (await getDb().get(`${eContractid.LendToAaveMigratorImpl}.${DRE.network.name}`).value())
+      (await getDb().get(`${eContractid.PsysToRexMigratorImpl}.${DRE.network.name}`).value())
         .address
   );
 };
 
-export const getLendToAaveMigrator = async (address?: tEthereumAddress) => {
-  return await getContract<LendToAaveMigrator>(
-    eContractid.LendToAaveMigrator,
+export const getPsysToRexMigrator = async (address?: tEthereumAddress) => {
+  return await getContract<PsysToRexMigrator>(
+    eContractid.PsysToRexMigrator,
     address ||
-      (await getDb().get(`${eContractid.LendToAaveMigrator}.${DRE.network.name}`).value()).address
+      (await getDb().get(`${eContractid.PsysToRexMigrator}.${DRE.network.name}`).value()).address
   );
 };
 
@@ -251,7 +251,7 @@ export const convertToCurrencyUnits = async (tokenAddress: string, amount: strin
 
 export const buildPermitParams = (
   chainId: number,
-  aaveToken: tEthereumAddress,
+  rexToken: tEthereumAddress,
   owner: tEthereumAddress,
   spender: tEthereumAddress,
   nonce: number,
@@ -275,10 +275,10 @@ export const buildPermitParams = (
   },
   primaryType: 'Permit' as const,
   domain: {
-    name: 'Aave Token',
+    name: 'Rex Token',
     version: '1',
     chainId: chainId,
-    verifyingContract: aaveToken,
+    verifyingContract: rexToken,
   },
   message: {
     owner,
@@ -291,7 +291,7 @@ export const buildPermitParams = (
 
 export const buildDelegateByTypeParams = (
   chainId: number,
-  aaveToken: tEthereumAddress,
+  rexToken: tEthereumAddress,
   delegatee: tEthereumAddress,
   type: string,
   nonce: string,
@@ -313,10 +313,10 @@ export const buildDelegateByTypeParams = (
   },
   primaryType: 'DelegateByType' as const,
   domain: {
-    name: 'Aave Token',
+    name: 'Rex Token',
     version: '1',
     chainId: chainId,
-    verifyingContract: aaveToken,
+    verifyingContract: rexToken,
   },
   message: {
     delegatee,
@@ -328,7 +328,7 @@ export const buildDelegateByTypeParams = (
 
 export const buildDelegateParams = (
   chainId: number,
-  aaveToken: tEthereumAddress,
+  rexToken: tEthereumAddress,
   delegatee: tEthereumAddress,
   nonce: string,
   expiry: string
@@ -348,10 +348,10 @@ export const buildDelegateParams = (
   },
   primaryType: 'Delegate' as const,
   domain: {
-    name: 'Aave Token',
+    name: 'Rex Token',
     version: '1',
     chainId: chainId,
-    verifyingContract: aaveToken,
+    verifyingContract: rexToken,
   },
   message: {
     delegatee,

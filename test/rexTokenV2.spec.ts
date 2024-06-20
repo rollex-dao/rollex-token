@@ -10,72 +10,72 @@ import {
   buildPermitParams,
   getSignatureFromTypedData,
   deployDoubleTransferHelper,
-  deployAaveTokenV2,
+  deployRexTokenV2,
   getContract,
 } from '../helpers/contracts-helpers';
 import {
   ZERO_ADDRESS,
   MAX_UINT_AMOUNT,
-  getAaveTokenDomainSeparatorPerNetwork,
+  getRexTokenDomainSeparatorPerNetwork,
 } from '../helpers/constants';
-import {AaveTokenV2} from '../types/AaveTokenV2';
+import {RexTokenV2} from '../types/RexTokenV2';
 import {parseEther} from 'ethers/lib/utils';
 
 const {expect} = require('chai');
 
-makeSuite('AAVE token V2', (testEnv: TestEnv) => {
-  let aaveTokenV2: AaveTokenV2;
+makeSuite('REX token V2', (testEnv: TestEnv) => {
+  let rexTokenV2: RexTokenV2;
 
-  it('Updates the implementation of the AAVE token to V2', async () => {
-    const {aaveToken, users} = testEnv;
+  it('Updates the implementation of the REX token to V2', async () => {
+    const {rexToken, users} = testEnv;
 
-    //getting the proxy contract from the aave token address
-    const aaveTokenProxy = await getContract(
+    //getting the proxy contract from the rex token address
+    const rexTokenProxy = await getContract(
       eContractid.InitializableAdminUpgradeabilityProxy,
-      aaveToken.address
+      rexToken.address
     );
 
-    const AAVEv2 = await deployAaveTokenV2();
+    const REXv2 = await deployRexTokenV2();
 
-    const encodedIntialize = AAVEv2.interface.encodeFunctionData('initialize');
+    const encodedIntialize = REXv2.interface.encodeFunctionData('initialize');
 
-    await aaveTokenProxy
+    await rexTokenProxy
       .connect(users[0].signer)
-      .upgradeToAndCall(AAVEv2.address, encodedIntialize);
+      .upgradeToAndCall(REXv2.address, encodedIntialize);
 
-    aaveTokenV2 = await getContract(eContractid.AaveTokenV2, aaveTokenProxy.address);
+    rexTokenV2 = await getContract(eContractid.RexTokenV2, rexTokenProxy.address);
   });
 
   it('Checks initial configuration', async () => {
-    expect(await aaveTokenV2.name()).to.be.equal('Aave Token', 'Invalid token name');
+    expect(await rexTokenV2.name()).to.be.equal('Rex Token', 'Invalid token name');
 
-    expect(await aaveTokenV2.symbol()).to.be.equal('AAVE', 'Invalid token symbol');
+    expect(await rexTokenV2.symbol()).to.be.equal('REX', 'Invalid token symbol');
 
-    expect((await aaveTokenV2.decimals()).toString()).to.be.equal('18', 'Invalid token decimals');
+    expect((await rexTokenV2.decimals()).toString()).to.be.equal('18', 'Invalid token decimals');
   });
 
   it('Checks the domain separator', async () => {
     const network = DRE.network.name;
-    const DOMAIN_SEPARATOR_ENCODED = getAaveTokenDomainSeparatorPerNetwork(
+    const DOMAIN_SEPARATOR_ENCODED = getRexTokenDomainSeparatorPerNetwork(
       network as eEthereumNetwork
     );
 
-    const separator = await aaveTokenV2.DOMAIN_SEPARATOR();
+    const separator = await rexTokenV2.DOMAIN_SEPARATOR();
     expect(separator).to.be.equal(DOMAIN_SEPARATOR_ENCODED, 'Invalid domain separator');
   });
 
   it('Checks the revision', async () => {
-    const revision = await aaveTokenV2.REVISION();
+    const revision = await rexTokenV2.REVISION();
 
     expect(revision.toString()).to.be.equal('2', 'Invalid revision');
   });
 
-  it('Checks the allocation of the initial AAVE supply', async () => {
+  it('Checks the allocation of the initial REX supply', async () => {
     const expectedMigratorBalance = new BigNumber(13000000).times(new BigNumber(10).pow(18));
     const expectedlDistributorBalance = new BigNumber(3000000).times(new BigNumber(10).pow(18));
-    const {lendToAaveMigrator} = testEnv;
-    const migratorBalance = await aaveTokenV2.balanceOf(lendToAaveMigrator.address);
-    const distributorBalance = await aaveTokenV2.balanceOf(testEnv.users[0].address);
+    const {psysToRexMigrator} = testEnv;
+    const migratorBalance = await rexTokenV2.balanceOf(psysToRexMigrator.address);
+    const distributorBalance = await rexTokenV2.balanceOf(testEnv.users[0].address);
 
     expect(migratorBalance.toString()).to.be.equal(
       expectedMigratorBalance.toFixed(0),
@@ -88,19 +88,19 @@ makeSuite('AAVE token V2', (testEnv: TestEnv) => {
   });
 
   it('Starts the migration', async () => {
-    const {lendToAaveMigrator, lendToAaveMigratorImpl, users} = testEnv;
+    const {psysToRexMigrator, psysToRexMigratorImpl, users} = testEnv;
 
-    const lendToAaveMigratorInitializeEncoded = lendToAaveMigratorImpl.interface.encodeFunctionData(
+    const psysToRexMigratorInitializeEncoded = psysToRexMigratorImpl.interface.encodeFunctionData(
       'initialize'
     );
 
     const migratorAsProxy = await getInitializableAdminUpgradeabilityProxy(
-      lendToAaveMigrator.address
+      psysToRexMigrator.address
     );
 
     await migratorAsProxy
       .connect(users[0].signer)
-      .upgradeToAndCall(lendToAaveMigratorImpl.address, lendToAaveMigratorInitializeEncoded);
+      .upgradeToAndCall(psysToRexMigratorImpl.address, psysToRexMigratorInitializeEncoded);
   });
 
   it('Reverts submitting a permit with 0 expiration', async () => {
@@ -113,11 +113,11 @@ makeSuite('AAVE token V2', (testEnv: TestEnv) => {
       fail("Current network doesn't have CHAIN ID");
     }
     const expiration = 0;
-    const nonce = (await aaveTokenV2._nonces(owner)).toNumber();
+    const nonce = (await rexTokenV2._nonces(owner)).toNumber();
     const permitAmount = ethers.utils.parseEther('2').toString();
     const msgParams = buildPermitParams(
       chainId,
-      aaveTokenV2.address,
+      rexTokenV2.address,
       owner,
       spender,
       nonce,
@@ -130,7 +130,7 @@ makeSuite('AAVE token V2', (testEnv: TestEnv) => {
       throw new Error('INVALID_OWNER_PK');
     }
 
-    expect((await aaveTokenV2.allowance(owner, spender)).toString()).to.be.equal(
+    expect((await rexTokenV2.allowance(owner, spender)).toString()).to.be.equal(
       '0',
       'INVALID_ALLOWANCE_BEFORE_PERMIT'
     );
@@ -138,10 +138,10 @@ makeSuite('AAVE token V2', (testEnv: TestEnv) => {
     const {v, r, s} = getSignatureFromTypedData(ownerPrivateKey, msgParams);
 
     await expect(
-      aaveTokenV2.connect(users[1].signer).permit(owner, spender, permitAmount, expiration, v, r, s)
+      rexTokenV2.connect(users[1].signer).permit(owner, spender, permitAmount, expiration, v, r, s)
     ).to.be.revertedWith('INVALID_EXPIRATION');
 
-    expect((await aaveTokenV2.allowance(owner, spender)).toString()).to.be.equal(
+    expect((await rexTokenV2.allowance(owner, spender)).toString()).to.be.equal(
       '0',
       'INVALID_ALLOWANCE_AFTER_PERMIT'
     );
@@ -159,11 +159,11 @@ makeSuite('AAVE token V2', (testEnv: TestEnv) => {
       fail("Current network doesn't have CHAIN ID");
     }
     const deadline = MAX_UINT_AMOUNT;
-    const nonce = (await aaveTokenV2._nonces(owner)).toNumber();
+    const nonce = (await rexTokenV2._nonces(owner)).toNumber();
     const permitAmount = ethers.utils.parseEther('2').toString();
     const msgParams = buildPermitParams(
       chainId,
-      aaveTokenV2.address,
+      rexTokenV2.address,
       owner,
       spender,
       nonce,
@@ -176,7 +176,7 @@ makeSuite('AAVE token V2', (testEnv: TestEnv) => {
       throw new Error('INVALID_OWNER_PK');
     }
 
-    expect((await aaveTokenV2.allowance(owner, spender)).toString()).to.be.equal(
+    expect((await rexTokenV2.allowance(owner, spender)).toString()).to.be.equal(
       '0',
       'INVALID_ALLOWANCE_BEFORE_PERMIT'
     );
@@ -184,12 +184,12 @@ makeSuite('AAVE token V2', (testEnv: TestEnv) => {
     const {v, r, s} = getSignatureFromTypedData(ownerPrivateKey, msgParams);
 
     await waitForTx(
-      await aaveTokenV2
+      await rexTokenV2
         .connect(users[1].signer)
         .permit(owner, spender, permitAmount, deadline, v, r, s)
     );
 
-    expect((await aaveTokenV2._nonces(owner)).toNumber()).to.be.equal(1);
+    expect((await rexTokenV2._nonces(owner)).toNumber()).to.be.equal(1);
   });
 
   it('Cancels the previous permit', async () => {
@@ -202,11 +202,11 @@ makeSuite('AAVE token V2', (testEnv: TestEnv) => {
       fail("Current network doesn't have CHAIN ID");
     }
     const deadline = MAX_UINT_AMOUNT;
-    const nonce = (await aaveTokenV2._nonces(owner)).toNumber();
+    const nonce = (await rexTokenV2._nonces(owner)).toNumber();
     const permitAmount = '0';
     const msgParams = buildPermitParams(
       chainId,
-      aaveTokenV2.address,
+      rexTokenV2.address,
       owner,
       spender,
       nonce,
@@ -221,22 +221,22 @@ makeSuite('AAVE token V2', (testEnv: TestEnv) => {
 
     const {v, r, s} = getSignatureFromTypedData(ownerPrivateKey, msgParams);
 
-    expect((await aaveTokenV2.allowance(owner, spender)).toString()).to.be.equal(
+    expect((await rexTokenV2.allowance(owner, spender)).toString()).to.be.equal(
       ethers.utils.parseEther('2'),
       'INVALID_ALLOWANCE_BEFORE_PERMIT'
     );
 
     await waitForTx(
-      await aaveTokenV2
+      await rexTokenV2
         .connect(users[1].signer)
         .permit(owner, spender, permitAmount, deadline, v, r, s)
     );
-    expect((await aaveTokenV2.allowance(owner, spender)).toString()).to.be.equal(
+    expect((await rexTokenV2.allowance(owner, spender)).toString()).to.be.equal(
       permitAmount,
       'INVALID_ALLOWANCE_AFTER_PERMIT'
     );
 
-    expect((await aaveTokenV2._nonces(owner)).toNumber()).to.be.equal(2);
+    expect((await rexTokenV2._nonces(owner)).toNumber()).to.be.equal(2);
   });
 
   it('Tries to submit a permit with invalid nonce', async () => {
@@ -253,7 +253,7 @@ makeSuite('AAVE token V2', (testEnv: TestEnv) => {
     const permitAmount = '0';
     const msgParams = buildPermitParams(
       chainId,
-      aaveTokenV2.address,
+      rexTokenV2.address,
       owner,
       spender,
       nonce,
@@ -269,7 +269,7 @@ makeSuite('AAVE token V2', (testEnv: TestEnv) => {
     const {v, r, s} = getSignatureFromTypedData(ownerPrivateKey, msgParams);
 
     await expect(
-      aaveTokenV2.connect(users[1].signer).permit(owner, spender, permitAmount, deadline, v, r, s)
+      rexTokenV2.connect(users[1].signer).permit(owner, spender, permitAmount, deadline, v, r, s)
     ).to.be.revertedWith('INVALID_SIGNATURE');
   });
 
@@ -283,11 +283,11 @@ makeSuite('AAVE token V2', (testEnv: TestEnv) => {
       fail("Current network doesn't have CHAIN ID");
     }
     const expiration = '1';
-    const nonce = (await aaveTokenV2._nonces(owner)).toNumber();
+    const nonce = (await rexTokenV2._nonces(owner)).toNumber();
     const permitAmount = '0';
     const msgParams = buildPermitParams(
       chainId,
-      aaveTokenV2.address,
+      rexTokenV2.address,
       owner,
       spender,
       nonce,
@@ -303,7 +303,7 @@ makeSuite('AAVE token V2', (testEnv: TestEnv) => {
     const {v, r, s} = getSignatureFromTypedData(ownerPrivateKey, msgParams);
 
     await expect(
-      aaveTokenV2.connect(users[1].signer).permit(owner, spender, expiration, permitAmount, v, r, s)
+      rexTokenV2.connect(users[1].signer).permit(owner, spender, expiration, permitAmount, v, r, s)
     ).to.be.revertedWith('INVALID_EXPIRATION');
   });
 
@@ -317,11 +317,11 @@ makeSuite('AAVE token V2', (testEnv: TestEnv) => {
       fail("Current network doesn't have CHAIN ID");
     }
     const deadline = MAX_UINT_AMOUNT;
-    const nonce = (await aaveTokenV2._nonces(owner)).toNumber();
+    const nonce = (await rexTokenV2._nonces(owner)).toNumber();
     const permitAmount = '0';
     const msgParams = buildPermitParams(
       chainId,
-      aaveTokenV2.address,
+      rexTokenV2.address,
       owner,
       spender,
       nonce,
@@ -337,7 +337,7 @@ makeSuite('AAVE token V2', (testEnv: TestEnv) => {
     const {v, r, s} = getSignatureFromTypedData(ownerPrivateKey, msgParams);
 
     await expect(
-      aaveTokenV2
+      rexTokenV2
         .connect(users[1].signer)
         .permit(owner, ZERO_ADDRESS, permitAmount, deadline, v, r, s)
     ).to.be.revertedWith('INVALID_SIGNATURE');
@@ -353,11 +353,11 @@ makeSuite('AAVE token V2', (testEnv: TestEnv) => {
       fail("Current network doesn't have CHAIN ID");
     }
     const expiration = MAX_UINT_AMOUNT;
-    const nonce = (await aaveTokenV2._nonces(owner)).toNumber();
+    const nonce = (await rexTokenV2._nonces(owner)).toNumber();
     const permitAmount = '0';
     const msgParams = buildPermitParams(
       chainId,
-      aaveTokenV2.address,
+      rexTokenV2.address,
       owner,
       spender,
       nonce,
@@ -373,14 +373,14 @@ makeSuite('AAVE token V2', (testEnv: TestEnv) => {
     const {v, r, s} = getSignatureFromTypedData(ownerPrivateKey, msgParams);
 
     await expect(
-      aaveTokenV2
+      rexTokenV2
         .connect(users[1].signer)
         .permit(ZERO_ADDRESS, spender, expiration, permitAmount, v, r, s)
     ).to.be.revertedWith('INVALID_OWNER');
   });
 
   it('Checks the total supply', async () => {
-    const totalSupply = await aaveTokenV2.totalSupplyAt('0'); // Supply remains constant due no more mints
+    const totalSupply = await rexTokenV2.totalSupplyAt('0'); // Supply remains constant due no more mints
     expect(totalSupply).equal(parseEther('16000000'));
   });
 });

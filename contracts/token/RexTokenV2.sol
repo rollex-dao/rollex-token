@@ -8,14 +8,14 @@ import {GovernancePowerDelegationERC20} from './base/GovernancePowerDelegationER
 import {SafeMath} from '../open-zeppelin/SafeMath.sol';
 
 /**
- * @notice implementation of the AAVE token contract
- * @author Aave
+ * @notice implementation of the REX token contract
+ * @author Rex
  */
-contract AaveTokenV2 is GovernancePowerDelegationERC20, VersionedInitializable {
+contract RexTokenV2 is GovernancePowerDelegationERC20, VersionedInitializable {
   using SafeMath for uint256;
 
-  string internal constant NAME = 'Aave Token';
-  string internal constant SYMBOL = 'AAVE';
+  string internal constant NAME = 'Rex Token';
+  string internal constant SYMBOL = 'REX';
   uint8 internal constant DECIMALS = 18;
 
   uint256 public constant REVISION = 2;
@@ -27,19 +27,17 @@ contract AaveTokenV2 is GovernancePowerDelegationERC20, VersionedInitializable {
 
   mapping(address => uint256) public _votingSnapshotsCounts;
 
-  /// @dev reference to the Aave governance contract to call (if initialized) on _beforeTokenTransfer
-  /// !!! IMPORTANT The Aave governance is considered a trustable contract, being its responsibility
-  /// to control all potential reentrancies by calling back the AaveToken
-  ITransferHook public _aaveGovernance;
+  /// @dev reference to the Rex governance contract to call (if initialized) on _beforeTokenTransfer
+  /// !!! IMPORTANT The Rex governance is considered a trustable contract, being its responsibility
+  /// to control all potential reentrancies by calling back the RexToken
+  ITransferHook public _rexGovernance;
 
   bytes32 public DOMAIN_SEPARATOR;
   bytes public constant EIP712_REVISION = bytes('1');
-  bytes32 internal constant EIP712_DOMAIN = keccak256(
-    'EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)'
-  );
-  bytes32 public constant PERMIT_TYPEHASH = keccak256(
-    'Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)'
-  );
+  bytes32 internal constant EIP712_DOMAIN =
+    keccak256('EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)');
+  bytes32 public constant PERMIT_TYPEHASH =
+    keccak256('Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)');
 
   mapping(address => address) internal _votingDelegates;
 
@@ -95,7 +93,7 @@ contract AaveTokenV2 is GovernancePowerDelegationERC20, VersionedInitializable {
   /**
    * @dev returns the revision of the implementation contract
    */
-  function getRevision() internal override pure returns (uint256) {
+  function getRevision() internal pure override returns (uint256) {
     return REVISION;
   }
 
@@ -108,11 +106,7 @@ contract AaveTokenV2 is GovernancePowerDelegationERC20, VersionedInitializable {
    * @param to the to address
    * @param amount the amount to transfer
    */
-  function _beforeTokenTransfer(
-    address from,
-    address to,
-    uint256 amount
-  ) internal override {
+  function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
     address votingFromDelegatee = _getDelegatee(from, _votingDelegates);
     address votingToDelegatee = _getDelegatee(to, _votingDelegates);
 
@@ -133,17 +127,19 @@ contract AaveTokenV2 is GovernancePowerDelegationERC20, VersionedInitializable {
       DelegationType.PROPOSITION_POWER
     );
 
-    // caching the aave governance address to avoid multiple state loads
-    ITransferHook aaveGovernance = _aaveGovernance;
-    if (aaveGovernance != ITransferHook(0)) {
-      aaveGovernance.onTransfer(from, to, amount);
+    // caching the rex governance address to avoid multiple state loads
+    ITransferHook rexGovernance = _rexGovernance;
+    if (rexGovernance != ITransferHook(0)) {
+      rexGovernance.onTransfer(from, to, amount);
     }
   }
 
-  function _getDelegationDataByType(DelegationType delegationType)
+  function _getDelegationDataByType(
+    DelegationType delegationType
+  )
     internal
-    override
     view
+    override
     returns (
       mapping(address => mapping(uint256 => Snapshot)) storage, //snapshots
       mapping(address => uint256) storage, //snapshots count

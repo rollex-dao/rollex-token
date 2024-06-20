@@ -7,10 +7,10 @@ import {VersionedInitializable} from '../utils/VersionedInitializable.sol';
 import {SafeMath} from '../open-zeppelin/SafeMath.sol';
 
 /**
- * @notice implementation of the AAVE token contract
- * @author Aave
+ * @notice implementation of the REX token contract
+ * @author Rex
  */
-contract AaveToken is ERC20, VersionedInitializable {
+contract RexToken is ERC20, VersionedInitializable {
   using SafeMath for uint256;
 
   /// @dev snapshot of a value on a specific block, used for balances
@@ -19,11 +19,11 @@ contract AaveToken is ERC20, VersionedInitializable {
     uint128 value;
   }
 
-  string internal constant NAME = 'Aave Token';
-  string internal constant SYMBOL = 'AAVE';
+  string internal constant NAME = 'Rex Token';
+  string internal constant SYMBOL = 'REX';
   uint8 internal constant DECIMALS = 18;
 
-  /// @dev the amount being distributed for the LEND -> AAVE migration
+  /// @dev the amount being distributed for the PSYS -> REX migration
   uint256 internal constant MIGRATION_AMOUNT = 13000000 ether;
 
   /// @dev the amount being distributed for the PSI and PEI
@@ -38,19 +38,17 @@ contract AaveToken is ERC20, VersionedInitializable {
 
   mapping(address => uint256) public _countsSnapshots;
 
-  /// @dev reference to the Aave governance contract to call (if initialized) on _beforeTokenTransfer
-  /// !!! IMPORTANT The Aave governance is considered a trustable contract, being its responsibility
-  /// to control all potential reentrancies by calling back the AaveToken
-  ITransferHook public _aaveGovernance;
+  /// @dev reference to the Rex governance contract to call (if initialized) on _beforeTokenTransfer
+  /// !!! IMPORTANT The Rex governance is considered a trustable contract, being its responsibility
+  /// to control all potential reentrancies by calling back the RexToken
+  ITransferHook public _rexGovernance;
 
   bytes32 public DOMAIN_SEPARATOR;
   bytes public constant EIP712_REVISION = bytes('1');
-  bytes32 internal constant EIP712_DOMAIN = keccak256(
-    'EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)'
-  );
-  bytes32 public constant PERMIT_TYPEHASH = keccak256(
-    'Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)'
-  );
+  bytes32 internal constant EIP712_DOMAIN =
+    keccak256('EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)');
+  bytes32 public constant PERMIT_TYPEHASH =
+    keccak256('Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)');
 
   event SnapshotDone(address owner, uint128 oldValue, uint128 newValue);
 
@@ -58,13 +56,13 @@ contract AaveToken is ERC20, VersionedInitializable {
 
   /**
    * @dev initializes the contract upon assignment to the InitializableAdminUpgradeabilityProxy
-   * @param migrator the address of the LEND -> AAVE migration contract
-   * @param distributor the address of the AAVE distribution contract
+   * @param migrator the address of the PSYS -> REX migration contract
+   * @param distributor the address of the REX distribution contract
    */
   function initialize(
     address migrator,
     address distributor,
-    ITransferHook aaveGovernance
+    ITransferHook rexGovernance
   ) external initializer {
     uint256 chainId;
 
@@ -85,7 +83,7 @@ contract AaveToken is ERC20, VersionedInitializable {
     _name = NAME;
     _symbol = SYMBOL;
     _setupDecimals(DECIMALS);
-    _aaveGovernance = aaveGovernance;
+    _rexGovernance = rexGovernance;
     _mint(migrator, MIGRATION_AMOUNT);
     _mint(distributor, DISTRIBUTION_AMOUNT);
   }
@@ -130,7 +128,7 @@ contract AaveToken is ERC20, VersionedInitializable {
   /**
    * @dev returns the revision of the implementation contract
    */
-  function getRevision() internal override pure returns (uint256) {
+  function getRevision() internal pure override returns (uint256) {
     return REVISION;
   }
 
@@ -140,11 +138,7 @@ contract AaveToken is ERC20, VersionedInitializable {
    * @param oldValue The value before the operation that is gonna be executed after the snapshot
    * @param newValue The value after the operation
    */
-  function _writeSnapshot(
-    address owner,
-    uint128 oldValue,
-    uint128 newValue
-  ) internal {
+  function _writeSnapshot(address owner, uint128 oldValue, uint128 newValue) internal {
     uint128 currentBlock = uint128(block.number);
 
     uint256 ownerCountOfSnapshots = _countsSnapshots[owner];
@@ -173,11 +167,7 @@ contract AaveToken is ERC20, VersionedInitializable {
    * @param to the to address
    * @param amount the amount to transfer
    */
-  function _beforeTokenTransfer(
-    address from,
-    address to,
-    uint256 amount
-  ) internal override {
+  function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
     if (from == to) {
       return;
     }
@@ -191,10 +181,10 @@ contract AaveToken is ERC20, VersionedInitializable {
       _writeSnapshot(to, uint128(toBalance), uint128(toBalance.add(amount)));
     }
 
-    // caching the aave governance address to avoid multiple state loads
-    ITransferHook aaveGovernance = _aaveGovernance;
-    if (aaveGovernance != ITransferHook(0)) {
-      aaveGovernance.onTransfer(from, to, amount);
+    // caching the rex governance address to avoid multiple state loads
+    ITransferHook rexGovernance = _rexGovernance;
+    if (rexGovernance != ITransferHook(0)) {
+      rexGovernance.onTransfer(from, to, amount);
     }
   }
 }
