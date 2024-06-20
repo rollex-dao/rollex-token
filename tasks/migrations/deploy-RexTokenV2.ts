@@ -4,19 +4,19 @@ import {HardhatRuntimeEnvironment} from 'hardhat/types';
 import {eEthereumNetwork} from '../../helpers/types-common';
 import {eContractid} from '../../helpers/types';
 import {checkVerification} from '../../helpers/etherscan-verification';
-import {getAaveAdminPerNetwork, getLendTokenPerNetwork} from '../../helpers/constants';
+import {getRexAdminPerNetwork, getPsysTokenPerNetwork} from '../../helpers/constants';
 
-task('deploy-v2', 'Deployment of the Aave token V2')
+task('deploy-v2', 'Deployment of the Rex token V2')
   .addFlag(
     'verify',
-    'Verify AaveTokenV2 contract.'
+    'Verify RexTokenV2 contract.'
   )
   .setAction(async ({verify}, localBRE) => {
     const DRE: HardhatRuntimeEnvironment = await localBRE.run('set-dre');
     const network = DRE.network.name as eEthereumNetwork;
-    const aaveAdmin = getAaveAdminPerNetwork(network);
+    const rexAdmin = getRexAdminPerNetwork(network);
 
-    if (!aaveAdmin) {
+    if (!rexAdmin) {
       throw Error(
         'The --admin parameter must be set for mainnet network. Set an Ethereum address as --admin parameter input.'
       );
@@ -27,7 +27,7 @@ task('deploy-v2', 'Deployment of the Aave token V2')
       checkVerification();
     }
 
-    await DRE.run(`deploy-${eContractid.AaveTokenV2}`, {verify});
+    await DRE.run(`deploy-${eContractid.RexTokenV2}`, {verify});
 
-    console.log('\n✔️ Finished the deployment of the Aave Token V2 Mainnet Environment. ✔️');
+    console.log('\n✔️ Finished the deployment of the Rex Token V2 Mainnet Environment. ✔️');
   });

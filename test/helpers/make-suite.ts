@@ -2,10 +2,10 @@ import {evmRevert, evmSnapshot, DRE} from '../../helpers/misc-utils';
 import {Signer} from 'ethers';
 import {
   getEthersSigners,
-  getAaveToken,
-  getLendToken,
-  getLendToAaveMigrator,
-  getLendToAaveMigratorImpl,
+  getRexToken,
+  getPsysToken,
+  getPsysToRexMigrator,
+  getPsysToRexMigratorImpl,
   getMockTransferHook,
 } from '../../helpers/contracts-helpers';
 import {tEthereumAddress} from '../../helpers/types';
@@ -13,8 +13,8 @@ import {tEthereumAddress} from '../../helpers/types';
 import chai from 'chai';
 // @ts-ignore
 import bignumberChai from 'chai-bignumber';
-import {AaveToken} from '../../types/AaveToken';
-import {LendToAaveMigrator} from '../../types/LendToAaveMigrator';
+import {RexToken} from '../../types/RexToken';
+import {PsysToRexMigrator} from '../../types/PsysToRexMigrator';
 import {MintableErc20} from '../../types/MintableErc20';
 import {MockTransferHook} from '../../types/MockTransferHook';
 
@@ -27,10 +27,10 @@ export interface SignerWithAddress {
 export interface TestEnv {
   deployer: SignerWithAddress;
   users: SignerWithAddress[];
-  aaveToken: AaveToken;
-  lendToken: MintableErc20;
-  lendToAaveMigrator: LendToAaveMigrator;
-  lendToAaveMigratorImpl: LendToAaveMigrator;
+  rexToken: RexToken;
+  psysToken: MintableErc20;
+  psysToRexMigrator: PsysToRexMigrator;
+  psysToRexMigratorImpl: PsysToRexMigrator;
   mockTransferHook: MockTransferHook;
 }
 
@@ -44,10 +44,10 @@ const setBuidlerevmSnapshotId = (id: string) => {
 const testEnv: TestEnv = {
   deployer: {} as SignerWithAddress,
   users: [] as SignerWithAddress[],
-  aaveToken: {} as AaveToken,
-  lendToken: {} as MintableErc20,
-  lendToAaveMigrator: {} as LendToAaveMigrator,
-  lendToAaveMigratorImpl: {} as LendToAaveMigrator,
+  rexToken: {} as RexToken,
+  psysToken: {} as MintableErc20,
+  psysToRexMigrator: {} as PsysToRexMigrator,
+  psysToRexMigratorImpl: {} as PsysToRexMigrator,
   mockTransferHook: {} as MockTransferHook,
 } as TestEnv;
 
@@ -65,10 +65,10 @@ export async function initializeMakeSuite() {
     });
   }
   testEnv.deployer = deployer;
-  testEnv.aaveToken = await getAaveToken();
-  testEnv.lendToAaveMigrator = await getLendToAaveMigrator();
-  testEnv.lendToken = await getLendToken();
-  testEnv.lendToAaveMigratorImpl = await getLendToAaveMigratorImpl();
+  testEnv.rexToken = await getRexToken();
+  testEnv.psysToRexMigrator = await getPsysToRexMigrator();
+  testEnv.psysToken = await getPsysToken();
+  testEnv.psysToRexMigratorImpl = await getPsysToRexMigratorImpl();
   testEnv.mockTransferHook = await getMockTransferHook();
 }
 

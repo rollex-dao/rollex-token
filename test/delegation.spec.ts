@@ -7,13 +7,13 @@ import {DRE, advanceBlock, timeLatest, waitForTx} from '../helpers/misc-utils';
 import {
   buildDelegateParams,
   buildDelegateByTypeParams,
-  deployAaveTokenV2,
+  deployRexTokenV2,
   deployDoubleTransferHelper,
   getContract,
   getCurrentBlock,
   getSignatureFromTypedData,
 } from '../helpers/contracts-helpers';
-import {AaveTokenV2} from '../types/AaveTokenV2';
+import {RexTokenV2} from '../types/RexTokenV2';
 import {MAX_UINT_AMOUNT, ZERO_ADDRESS} from '../helpers/constants';
 import {parseEther} from 'ethers/lib/utils';
 
@@ -21,28 +21,28 @@ chai.use(solidity);
 
 makeSuite('Delegation', (testEnv: TestEnv) => {
   const {} = ProtocolErrors;
-  let aaveInstance = {} as AaveTokenV2;
+  let rexInstance = {} as RexTokenV2;
   let firstActionBlockNumber = 0;
   let secondActionBlockNumber = 0;
 
-  it('Updates the implementation of the AAVE token to V2', async () => {
-    const {aaveToken, users} = testEnv;
+  it('Updates the implementation of the REX token to V2', async () => {
+    const {rexToken, users} = testEnv;
 
-    //getting the proxy contract from the aave token address
-    const aaveTokenProxy = await getContract(
+    //getting the proxy contract from the rex token address
+    const rexTokenProxy = await getContract(
       eContractid.InitializableAdminUpgradeabilityProxy,
-      aaveToken.address
+      rexToken.address
     );
 
-    const AAVEv2 = await deployAaveTokenV2();
+    const REXv2 = await deployRexTokenV2();
 
-    const encodedIntialize = AAVEv2.interface.encodeFunctionData('initialize');
+    const encodedIntialize = REXv2.interface.encodeFunctionData('initialize');
 
-    await aaveTokenProxy
+    await rexTokenProxy
       .connect(users[0].signer)
-      .upgradeToAndCall(AAVEv2.address, encodedIntialize);
+      .upgradeToAndCall(REXv2.address, encodedIntialize);
 
-    aaveInstance = await getContract(eContractid.AaveTokenV2, aaveTokenProxy.address);
+    rexInstance = await getContract(eContractid.RexTokenV2, rexTokenProxy.address);
   });
 
   // Blocked by https://github.com/nomiclabs/hardhat/issues/1081
@@ -59,9 +59,9 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
     );
     await user1.signer.sendTransaction({to: ZERO_ADDRESS, value: parseEther('1')});
 
-    await aaveInstance.connect(zeroUser).delegateByType(user1.address, '0');
+    await rexInstance.connect(zeroUser).delegateByType(user1.address, '0');
 
-    const delegatee = await aaveInstance.getDelegateeByType(ZERO_ADDRESS, '0');
+    const delegatee = await rexInstance.getDelegateeByType(ZERO_ADDRESS, '0');
 
     expect(delegatee.toString()).to.be.equal(ZERO_ADDRESS);
   });
@@ -69,9 +69,9 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
   it('User 1 tries to delegate voting power to user 2', async () => {
     const {users} = testEnv;
 
-    await aaveInstance.connect(users[1].signer).delegateByType(users[2].address, '0');
+    await rexInstance.connect(users[1].signer).delegateByType(users[2].address, '0');
 
-    const delegatee = await aaveInstance.getDelegateeByType(users[1].address, '0');
+    const delegatee = await rexInstance.getDelegateeByType(users[1].address, '0');
 
     expect(delegatee.toString()).to.be.equal(users[2].address);
   });
@@ -79,149 +79,149 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
   it('User 1 tries to delegate proposition power to user 3', async () => {
     const {users} = testEnv;
 
-    await aaveInstance.connect(users[1].signer).delegateByType(users[3].address, '1');
+    await rexInstance.connect(users[1].signer).delegateByType(users[3].address, '1');
 
-    const delegatee = await aaveInstance.getDelegateeByType(users[1].address, '1');
+    const delegatee = await rexInstance.getDelegateeByType(users[1].address, '1');
 
     expect(delegatee.toString()).to.be.equal(users[3].address);
   });
 
   it('Starts the migration', async () => {
-    const {lendToAaveMigrator, lendToAaveMigratorImpl} = testEnv;
+    const {psysToRexMigrator, psysToRexMigratorImpl} = testEnv;
 
-    const lendToAaveMigratorInitializeEncoded = lendToAaveMigratorImpl.interface.encodeFunctionData(
+    const psysToRexMigratorInitializeEncoded = psysToRexMigratorImpl.interface.encodeFunctionData(
       'initialize'
     );
 
     const migratorAsProxy = await getContract(
       eContractid.InitializableAdminUpgradeabilityProxy,
-      lendToAaveMigrator.address
+      psysToRexMigrator.address
     );
 
     await migratorAsProxy
       .connect(testEnv.users[0].signer)
-      .upgradeToAndCall(lendToAaveMigratorImpl.address, lendToAaveMigratorInitializeEncoded);
+      .upgradeToAndCall(psysToRexMigratorImpl.address, psysToRexMigratorInitializeEncoded);
   });
 
   it('User1 tries to delegate voting power to ZERO_ADDRESS', async () => {
     const {
       users: [, , , , , user],
-      lendToken,
-      lendToAaveMigrator,
+      psysToken,
+      psysToRexMigrator,
     } = testEnv;
-    const lendBalance = parseEther('1000');
-    const aaveBalance = parseEther('1');
+    const psysBalance = parseEther('1000');
+    const rexBalance = parseEther('1');
 
-    // Mint LEND and migrate
-    await lendToken.connect(user.signer).mint(lendBalance);
-    await lendToken.connect(user.signer).approve(lendToAaveMigrator.address, lendBalance);
-    await lendToAaveMigrator.connect(user.signer).migrateFromLEND(lendBalance);
+    // Mint PSYS and migrate
+    await psysToken.connect(user.signer).mint(psysBalance);
+    await psysToken.connect(user.signer).approve(psysToRexMigrator.address, psysBalance);
+    await psysToRexMigrator.connect(user.signer).migrateFromLEND(psysBalance);
 
     // Track current power
-    const priorPowerUser = await aaveInstance.getPowerCurrent(user.address, '0');
-    const priorPowerUserZeroAddress = await aaveInstance.getPowerCurrent(ZERO_ADDRESS, '0');
+    const priorPowerUser = await rexInstance.getPowerCurrent(user.address, '0');
+    const priorPowerUserZeroAddress = await rexInstance.getPowerCurrent(ZERO_ADDRESS, '0');
 
     await expect(
-      aaveInstance.connect(user.signer).delegateByType(ZERO_ADDRESS, '0')
+      rexInstance.connect(user.signer).delegateByType(ZERO_ADDRESS, '0')
     ).to.be.revertedWith('INVALID_DELEGATEE');
   });
 
-  it('User 1 migrates 1000 LEND; checks voting and proposition power of user 2 and 3', async () => {
-    const {lendToAaveMigrator, lendToken, users} = testEnv;
+  it('User 1 migrates 1000 PSYS; checks voting and proposition power of user 2 and 3', async () => {
+    const {psysToRexMigrator, psysToken, users} = testEnv;
     const user1 = users[1];
     const user2 = users[2];
     const user3 = users[3];
 
-    const lendBalance = parseEther('1000');
-    const expectedAaveBalanceAfterMigration = parseEther('1');
+    const psysBalance = parseEther('1000');
+    const expectedRexBalanceAfterMigration = parseEther('1');
 
-    await lendToken.connect(user1.signer).mint(lendBalance);
+    await psysToken.connect(user1.signer).mint(psysBalance);
 
-    await lendToken.connect(user1.signer).approve(lendToAaveMigrator.address, lendBalance);
+    await psysToken.connect(user1.signer).approve(psysToRexMigrator.address, psysBalance);
 
-    await lendToAaveMigrator.connect(user1.signer).migrateFromLEND(lendBalance);
+    await psysToRexMigrator.connect(user1.signer).migrateFromLEND(psysBalance);
 
-    const lendBalanceAfterMigration = await lendToken.balanceOf(user1.address);
-    const aaveBalanceAfterMigration = await aaveInstance.balanceOf(user1.address);
+    const psysBalanceAfterMigration = await psysToken.balanceOf(user1.address);
+    const rexBalanceAfterMigration = await rexInstance.balanceOf(user1.address);
 
     firstActionBlockNumber = await getCurrentBlock();
 
-    const user1PropPower = await aaveInstance.getPowerCurrent(user1.address, '0');
-    const user1VotingPower = await aaveInstance.getPowerCurrent(user1.address, '1');
+    const user1PropPower = await rexInstance.getPowerCurrent(user1.address, '0');
+    const user1VotingPower = await rexInstance.getPowerCurrent(user1.address, '1');
 
-    const user2VotingPower = await aaveInstance.getPowerCurrent(user2.address, '0');
-    const user2PropPower = await aaveInstance.getPowerCurrent(user2.address, '1');
+    const user2VotingPower = await rexInstance.getPowerCurrent(user2.address, '0');
+    const user2PropPower = await rexInstance.getPowerCurrent(user2.address, '1');
 
-    const user3VotingPower = await aaveInstance.getPowerCurrent(user3.address, '0');
-    const user3PropPower = await aaveInstance.getPowerCurrent(user3.address, '1');
+    const user3VotingPower = await rexInstance.getPowerCurrent(user3.address, '0');
+    const user3PropPower = await rexInstance.getPowerCurrent(user3.address, '1');
 
     expect(user1PropPower.toString()).to.be.equal('0', 'Invalid prop power for user 1');
     expect(user1VotingPower.toString()).to.be.equal('0', 'Invalid voting power for user 1');
 
     expect(user2PropPower.toString()).to.be.equal('0', 'Invalid prop power for user 2');
     expect(user2VotingPower.toString()).to.be.equal(
-      expectedAaveBalanceAfterMigration.toString(),
+      expectedRexBalanceAfterMigration.toString(),
       'Invalid voting power for user 2'
     );
 
     expect(user3PropPower.toString()).to.be.equal(
-      expectedAaveBalanceAfterMigration.toString(),
+      expectedRexBalanceAfterMigration.toString(),
       'Invalid prop power for user 3'
     );
     expect(user3VotingPower.toString()).to.be.equal('0', 'Invalid voting power for user 3');
 
-    expect(lendBalanceAfterMigration.toString()).to.be.equal('0');
-    expect(aaveBalanceAfterMigration.toString()).to.be.equal(expectedAaveBalanceAfterMigration);
+    expect(psysBalanceAfterMigration.toString()).to.be.equal('0');
+    expect(rexBalanceAfterMigration.toString()).to.be.equal(expectedRexBalanceAfterMigration);
   });
 
-  it('User 2 migrates 1000 LEND; checks voting and proposition power of user 2', async () => {
-    const {lendToAaveMigrator, lendToken, users} = testEnv;
+  it('User 2 migrates 1000 PSYS; checks voting and proposition power of user 2', async () => {
+    const {psysToRexMigrator, psysToken, users} = testEnv;
     const user2 = users[2];
 
-    const lendBalance = parseEther('1000');
-    const expectedAaveBalanceAfterMigration = parseEther('1');
+    const psysBalance = parseEther('1000');
+    const expectedRexBalanceAfterMigration = parseEther('1');
 
-    await lendToken.connect(user2.signer).mint(lendBalance);
+    await psysToken.connect(user2.signer).mint(psysBalance);
 
-    await lendToken.connect(user2.signer).approve(lendToAaveMigrator.address, lendBalance);
+    await psysToken.connect(user2.signer).approve(psysToRexMigrator.address, psysBalance);
 
-    await lendToAaveMigrator.connect(user2.signer).migrateFromLEND(lendBalance);
+    await psysToRexMigrator.connect(user2.signer).migrateFromLEND(psysBalance);
 
-    const user2VotingPower = await aaveInstance.getPowerCurrent(user2.address, '0');
-    const user2PropPower = await aaveInstance.getPowerCurrent(user2.address, '1');
+    const user2VotingPower = await rexInstance.getPowerCurrent(user2.address, '0');
+    const user2PropPower = await rexInstance.getPowerCurrent(user2.address, '1');
 
     expect(user2PropPower.toString()).to.be.equal(
-      expectedAaveBalanceAfterMigration.toString(),
+      expectedRexBalanceAfterMigration.toString(),
       'Invalid prop power for user 3'
     );
     expect(user2VotingPower.toString()).to.be.equal(
-      expectedAaveBalanceAfterMigration.mul('2').toString(),
+      expectedRexBalanceAfterMigration.mul('2').toString(),
       'Invalid voting power for user 3'
     );
   });
 
-  it('User 3 migrates 1000 LEND; checks voting and proposition power of user 3', async () => {
-    const {lendToAaveMigrator, lendToken, users} = testEnv;
+  it('User 3 migrates 1000 PSYS; checks voting and proposition power of user 3', async () => {
+    const {psysToRexMigrator, psysToken, users} = testEnv;
     const user3 = users[3];
 
-    const lendBalance = parseEther('1000');
-    const expectedAaveBalanceAfterMigration = parseEther('1');
+    const psysBalance = parseEther('1000');
+    const expectedRexBalanceAfterMigration = parseEther('1');
 
-    await lendToken.connect(user3.signer).mint(lendBalance);
+    await psysToken.connect(user3.signer).mint(psysBalance);
 
-    await lendToken.connect(user3.signer).approve(lendToAaveMigrator.address, lendBalance);
+    await psysToken.connect(user3.signer).approve(psysToRexMigrator.address, psysBalance);
 
-    await lendToAaveMigrator.connect(user3.signer).migrateFromLEND(lendBalance);
+    await psysToRexMigrator.connect(user3.signer).migrateFromLEND(psysBalance);
 
-    const user3VotingPower = await aaveInstance.getPowerCurrent(user3.address, '0');
-    const user3PropPower = await aaveInstance.getPowerCurrent(user3.address, '1');
+    const user3VotingPower = await rexInstance.getPowerCurrent(user3.address, '0');
+    const user3PropPower = await rexInstance.getPowerCurrent(user3.address, '1');
 
     expect(user3PropPower.toString()).to.be.equal(
-      expectedAaveBalanceAfterMigration.mul('2').toString(),
+      expectedRexBalanceAfterMigration.mul('2').toString(),
       'Invalid prop power for user 3'
     );
     expect(user3VotingPower.toString()).to.be.equal(
-      expectedAaveBalanceAfterMigration.toString(),
+      expectedRexBalanceAfterMigration.toString(),
       'Invalid voting power for user 3'
     );
   });
@@ -234,10 +234,10 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
     const expectedDelegatedVotingPower = parseEther('2');
     const expectedDelegatedPropPower = parseEther('3');
 
-    await aaveInstance.connect(user2.signer).delegate(user3.address);
+    await rexInstance.connect(user2.signer).delegate(user3.address);
 
-    const user3VotingPower = await aaveInstance.getPowerCurrent(user3.address, '0');
-    const user3PropPower = await aaveInstance.getPowerCurrent(user3.address, '1');
+    const user3VotingPower = await rexInstance.getPowerCurrent(user3.address, '0');
+    const user3PropPower = await rexInstance.getPowerCurrent(user3.address, '1');
 
     expect(user3VotingPower.toString()).to.be.equal(
       expectedDelegatedVotingPower.toString(),
@@ -255,13 +255,13 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
     const user2 = users[2];
     const user3 = users[3];
 
-    await aaveInstance.connect(user1.signer).delegate(user1.address);
+    await rexInstance.connect(user1.signer).delegate(user1.address);
 
-    const user2VotingPower = await aaveInstance.getPowerCurrent(user2.address, '0');
-    const user2PropPower = await aaveInstance.getPowerCurrent(user2.address, '1');
+    const user2VotingPower = await rexInstance.getPowerCurrent(user2.address, '0');
+    const user2PropPower = await rexInstance.getPowerCurrent(user2.address, '1');
 
-    const user3VotingPower = await aaveInstance.getPowerCurrent(user3.address, '0');
-    const user3PropPower = await aaveInstance.getPowerCurrent(user3.address, '1');
+    const user3VotingPower = await rexInstance.getPowerCurrent(user3.address, '0');
+    const user3PropPower = await rexInstance.getPowerCurrent(user3.address, '1');
 
     const expectedUser2DelegatedVotingPower = '0';
     const expectedUser2DelegatedPropPower = '0';
@@ -295,34 +295,34 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
     const user2 = users[2];
     const user3 = users[3];
 
-    const user1VotingPower = await aaveInstance.getPowerAtBlock(
+    const user1VotingPower = await rexInstance.getPowerAtBlock(
       user1.address,
       firstActionBlockNumber,
       '0'
     );
-    const user1PropPower = await aaveInstance.getPowerAtBlock(
+    const user1PropPower = await rexInstance.getPowerAtBlock(
       user1.address,
       firstActionBlockNumber,
       '1'
     );
 
-    const user2VotingPower = await aaveInstance.getPowerAtBlock(
+    const user2VotingPower = await rexInstance.getPowerAtBlock(
       user2.address,
       firstActionBlockNumber,
       '0'
     );
-    const user2PropPower = await aaveInstance.getPowerAtBlock(
+    const user2PropPower = await rexInstance.getPowerAtBlock(
       user2.address,
       firstActionBlockNumber,
       '1'
     );
 
-    const user3VotingPower = await aaveInstance.getPowerAtBlock(
+    const user3VotingPower = await rexInstance.getPowerAtBlock(
       user3.address,
       firstActionBlockNumber,
       '0'
     );
-    const user3PropPower = await aaveInstance.getPowerAtBlock(
+    const user3PropPower = await rexInstance.getPowerAtBlock(
       user3.address,
       firstActionBlockNumber,
       '1'
@@ -376,19 +376,19 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
 
     const currentBlock = await getCurrentBlock();
 
-    const votingPowerAtPreviousBlock = await aaveInstance.getPowerAtBlock(
+    const votingPowerAtPreviousBlock = await rexInstance.getPowerAtBlock(
       user1.address,
       currentBlock - 1,
       '0'
     );
-    const votingPowerCurrent = await aaveInstance.getPowerCurrent(user1.address, '0');
+    const votingPowerCurrent = await rexInstance.getPowerCurrent(user1.address, '0');
 
-    const propPowerAtPreviousBlock = await aaveInstance.getPowerAtBlock(
+    const propPowerAtPreviousBlock = await rexInstance.getPowerAtBlock(
       user1.address,
       currentBlock - 1,
       '1'
     );
-    const propPowerCurrent = await aaveInstance.getPowerCurrent(user1.address, '1');
+    const propPowerCurrent = await rexInstance.getPowerCurrent(user1.address, '1');
 
     expect(votingPowerAtPreviousBlock.toString()).to.be.equal(
       votingPowerCurrent.toString(),
@@ -408,10 +408,10 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
     const currentBlock = await getCurrentBlock();
 
     await expect(
-      aaveInstance.getPowerAtBlock(user1.address, currentBlock + 1, '0')
+      rexInstance.getPowerAtBlock(user1.address, currentBlock + 1, '0')
     ).to.be.revertedWith('INVALID_BLOCK_NUMBER');
     await expect(
-      aaveInstance.getPowerAtBlock(user1.address, currentBlock + 1, '1')
+      rexInstance.getPowerAtBlock(user1.address, currentBlock + 1, '1')
     ).to.be.revertedWith('INVALID_BLOCK_NUMBER');
   });
 
@@ -420,15 +420,15 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
 
     const user1 = users[1];
 
-    const user1VotingPowerBefore = await aaveInstance.getPowerCurrent(user1.address, '0');
-    const user1PropPowerBefore = await aaveInstance.getPowerCurrent(user1.address, '1');
+    const user1VotingPowerBefore = await rexInstance.getPowerCurrent(user1.address, '0');
+    const user1PropPowerBefore = await rexInstance.getPowerCurrent(user1.address, '1');
 
-    const balance = await aaveInstance.balanceOf(user1.address);
+    const balance = await rexInstance.balanceOf(user1.address);
 
-    await aaveInstance.connect(user1.signer).transfer(user1.address, balance);
+    await rexInstance.connect(user1.signer).transfer(user1.address, balance);
 
-    const user1VotingPowerAfter = await aaveInstance.getPowerCurrent(user1.address, '0');
-    const user1PropPowerAfter = await aaveInstance.getPowerCurrent(user1.address, '1');
+    const user1VotingPowerAfter = await rexInstance.getPowerCurrent(user1.address, '0');
+    const user1PropPowerAfter = await rexInstance.getPowerCurrent(user1.address, '1');
 
     expect(user1VotingPowerBefore.toString()).to.be.equal(
       user1VotingPowerAfter,
@@ -445,13 +445,13 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
     } = testEnv;
 
     // Calculate expected voting power
-    const user2VotPower = await aaveInstance.getPowerCurrent(user2.address, '1');
-    const expectedVotingPower = (await aaveInstance.getPowerCurrent(user1.address, '1')).add(
+    const user2VotPower = await rexInstance.getPowerCurrent(user2.address, '1');
+    const expectedVotingPower = (await rexInstance.getPowerCurrent(user1.address, '1')).add(
       user2VotPower
     );
 
     // Check prior delegatee is still user1
-    const priorDelegatee = await aaveInstance.getDelegateeByType(user1.address, '0');
+    const priorDelegatee = await rexInstance.getDelegateeByType(user1.address, '0');
     expect(priorDelegatee.toString()).to.be.equal(user1.address);
 
     // Prepare params to sign message
@@ -459,11 +459,11 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
     if (!chainId) {
       fail("Current network doesn't have CHAIN ID");
     }
-    const nonce = (await aaveInstance._nonces(user1.address)).toString();
+    const nonce = (await rexInstance._nonces(user1.address)).toString();
     const expiration = MAX_UINT_AMOUNT;
     const msgParams = buildDelegateByTypeParams(
       chainId,
-      aaveInstance.address,
+      rexInstance.address,
       user2.address,
       '0',
       nonce,
@@ -477,30 +477,30 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
     const {v, r, s} = getSignatureFromTypedData(ownerPrivateKey, msgParams);
 
     // Transmit message via delegateByTypeBySig
-    const tx = await aaveInstance
+    const tx = await rexInstance
       .connect(user1.signer)
       .delegateByTypeBySig(user2.address, '0', nonce, expiration, v, r, s);
 
     // Check tx success and DelegateChanged
     await expect(Promise.resolve(tx))
-      .to.emit(aaveInstance, 'DelegateChanged')
+      .to.emit(rexInstance, 'DelegateChanged')
       .withArgs(user1.address, user2.address, 0);
 
     // Check DelegatedPowerChanged event: users[1] power should drop to zero
     await expect(Promise.resolve(tx))
-      .to.emit(aaveInstance, 'DelegatedPowerChanged')
+      .to.emit(rexInstance, 'DelegatedPowerChanged')
       .withArgs(user1.address, 0, 0);
 
     // Check DelegatedPowerChanged event: users[2] power should increase to expectedVotingPower
     await expect(Promise.resolve(tx))
-      .to.emit(aaveInstance, 'DelegatedPowerChanged')
+      .to.emit(rexInstance, 'DelegatedPowerChanged')
       .withArgs(user2.address, expectedVotingPower, 0);
 
     // Check internal state
-    const delegatee = await aaveInstance.getDelegateeByType(user1.address, '0');
+    const delegatee = await rexInstance.getDelegateeByType(user1.address, '0');
     expect(delegatee.toString()).to.be.equal(user2.address, 'Delegatee should be user 2');
 
-    const user2VotingPower = await aaveInstance.getPowerCurrent(user2.address, '0');
+    const user2VotingPower = await rexInstance.getPowerCurrent(user2.address, '0');
     expect(user2VotingPower).to.be.equal(
       expectedVotingPower,
       'Delegatee should have voting power from user 1'
@@ -513,13 +513,13 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
     } = testEnv;
 
     // Calculate expected proposition power
-    const user3PropPower = await aaveInstance.getPowerCurrent(user3.address, '1');
-    const expectedPropPower = (await aaveInstance.getPowerCurrent(user1.address, '1')).add(
+    const user3PropPower = await rexInstance.getPowerCurrent(user3.address, '1');
+    const expectedPropPower = (await rexInstance.getPowerCurrent(user1.address, '1')).add(
       user3PropPower
     );
 
     // Check prior proposition delegatee is still user1
-    const priorDelegatee = await aaveInstance.getDelegateeByType(user1.address, '1');
+    const priorDelegatee = await rexInstance.getDelegateeByType(user1.address, '1');
     expect(priorDelegatee.toString()).to.be.equal(
       user1.address,
       'expected proposition delegatee to be user1'
@@ -530,11 +530,11 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
     if (!chainId) {
       fail("Current network doesn't have CHAIN ID");
     }
-    const nonce = (await aaveInstance._nonces(user1.address)).toString();
+    const nonce = (await rexInstance._nonces(user1.address)).toString();
     const expiration = MAX_UINT_AMOUNT;
     const msgParams = buildDelegateByTypeParams(
       chainId,
-      aaveInstance.address,
+      rexInstance.address,
       user3.address,
       '1',
       nonce,
@@ -547,30 +547,30 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
     const {v, r, s} = getSignatureFromTypedData(ownerPrivateKey, msgParams);
 
     // Transmit tx via delegateByTypeBySig
-    const tx = await aaveInstance
+    const tx = await rexInstance
       .connect(user1.signer)
       .delegateByTypeBySig(user3.address, '1', nonce, expiration, v, r, s);
 
     // Check tx success and DelegateChanged
     await expect(Promise.resolve(tx))
-      .to.emit(aaveInstance, 'DelegateChanged')
+      .to.emit(rexInstance, 'DelegateChanged')
       .withArgs(user1.address, user3.address, 1);
 
     // Check DelegatedPowerChanged event: users[1] power should drop to zero
     await expect(Promise.resolve(tx))
-      .to.emit(aaveInstance, 'DelegatedPowerChanged')
+      .to.emit(rexInstance, 'DelegatedPowerChanged')
       .withArgs(user1.address, 0, 1);
 
     // Check DelegatedPowerChanged event: users[2] power should increase to expectedVotingPower
     await expect(Promise.resolve(tx))
-      .to.emit(aaveInstance, 'DelegatedPowerChanged')
+      .to.emit(rexInstance, 'DelegatedPowerChanged')
       .withArgs(user3.address, expectedPropPower, 1);
 
     // Check internal state matches events
-    const delegatee = await aaveInstance.getDelegateeByType(user1.address, '1');
+    const delegatee = await rexInstance.getDelegateeByType(user1.address, '1');
     expect(delegatee.toString()).to.be.equal(user3.address, 'Delegatee should be user 3');
 
-    const user3PropositionPower = await aaveInstance.getPowerCurrent(user3.address, '1');
+    const user3PropositionPower = await rexInstance.getPowerCurrent(user3.address, '1');
     expect(user3PropositionPower).to.be.equal(
       expectedPropPower,
       'Delegatee should have propostion power from user 1'
@@ -585,29 +585,29 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
       users: [, user1, user2, , user4],
     } = testEnv;
 
-    await aaveInstance.connect(user2.signer).delegate(user2.address);
+    await rexInstance.connect(user2.signer).delegate(user2.address);
 
     // Calculate expected powers
-    const user4PropPower = await aaveInstance.getPowerCurrent(user4.address, '1');
-    const expectedPropPower = (await aaveInstance.getPowerCurrent(user2.address, '1')).add(
+    const user4PropPower = await rexInstance.getPowerCurrent(user4.address, '1');
+    const expectedPropPower = (await rexInstance.getPowerCurrent(user2.address, '1')).add(
       user4PropPower
     );
 
-    const user1VotingPower = await aaveInstance.balanceOf(user1.address);
-    const user4VotPower = await aaveInstance.getPowerCurrent(user4.address, '0');
+    const user1VotingPower = await rexInstance.balanceOf(user1.address);
+    const user4VotPower = await rexInstance.getPowerCurrent(user4.address, '0');
     const user2ExpectedVotPower = user1VotingPower;
-    const user4ExpectedVotPower = (await aaveInstance.getPowerCurrent(user2.address, '0'))
+    const user4ExpectedVotPower = (await rexInstance.getPowerCurrent(user2.address, '0'))
       .add(user4VotPower)
       .sub(user1VotingPower); // Delegation does not delegate votes others from other delegations
 
     // Check prior proposition delegatee is still user1
-    const priorPropDelegatee = await aaveInstance.getDelegateeByType(user2.address, '1');
+    const priorPropDelegatee = await rexInstance.getDelegateeByType(user2.address, '1');
     expect(priorPropDelegatee.toString()).to.be.equal(
       user2.address,
       'expected proposition delegatee to be user1'
     );
 
-    const priorVotDelegatee = await aaveInstance.getDelegateeByType(user2.address, '0');
+    const priorVotDelegatee = await rexInstance.getDelegateeByType(user2.address, '0');
     expect(priorVotDelegatee.toString()).to.be.equal(
       user2.address,
       'expected proposition delegatee to be user1'
@@ -618,11 +618,11 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
     if (!chainId) {
       fail("Current network doesn't have CHAIN ID");
     }
-    const nonce = (await aaveInstance._nonces(user2.address)).toString();
+    const nonce = (await rexInstance._nonces(user2.address)).toString();
     const expiration = MAX_UINT_AMOUNT;
     const msgParams = buildDelegateParams(
       chainId,
-      aaveInstance.address,
+      rexInstance.address,
       user4.address,
       nonce,
       expiration
@@ -634,63 +634,63 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
     const {v, r, s} = getSignatureFromTypedData(ownerPrivateKey, msgParams);
 
     // Transmit tx via delegateByTypeBySig
-    const tx = await aaveInstance
+    const tx = await rexInstance
       .connect(user2.signer)
       .delegateBySig(user4.address, nonce, expiration, v, r, s);
 
     // Check tx success and DelegateChanged for voting
     await expect(Promise.resolve(tx))
-      .to.emit(aaveInstance, 'DelegateChanged')
+      .to.emit(rexInstance, 'DelegateChanged')
       .withArgs(user2.address, user4.address, 1);
     // Check tx success and DelegateChanged for proposition
     await expect(Promise.resolve(tx))
-      .to.emit(aaveInstance, 'DelegateChanged')
+      .to.emit(rexInstance, 'DelegateChanged')
       .withArgs(user2.address, user4.address, 0);
 
     // Check DelegatedPowerChanged event: users[2] power should drop to zero
     await expect(Promise.resolve(tx))
-      .to.emit(aaveInstance, 'DelegatedPowerChanged')
+      .to.emit(rexInstance, 'DelegatedPowerChanged')
       .withArgs(user2.address, 0, 1);
 
     // Check DelegatedPowerChanged event: users[4] power should increase to expectedVotingPower
     await expect(Promise.resolve(tx))
-      .to.emit(aaveInstance, 'DelegatedPowerChanged')
+      .to.emit(rexInstance, 'DelegatedPowerChanged')
       .withArgs(user4.address, expectedPropPower, 1);
 
     // Check DelegatedPowerChanged event: users[2] power should drop to zero
     await expect(Promise.resolve(tx))
-      .to.emit(aaveInstance, 'DelegatedPowerChanged')
+      .to.emit(rexInstance, 'DelegatedPowerChanged')
       .withArgs(user2.address, user2ExpectedVotPower, 0);
 
     // Check DelegatedPowerChanged event: users[4] power should increase to expectedVotingPower
     await expect(Promise.resolve(tx))
-      .to.emit(aaveInstance, 'DelegatedPowerChanged')
+      .to.emit(rexInstance, 'DelegatedPowerChanged')
       .withArgs(user4.address, user4ExpectedVotPower, 0);
 
     // Check internal state matches events
-    const propDelegatee = await aaveInstance.getDelegateeByType(user2.address, '1');
+    const propDelegatee = await rexInstance.getDelegateeByType(user2.address, '1');
     expect(propDelegatee.toString()).to.be.equal(
       user4.address,
       'Proposition delegatee should be user 4'
     );
 
-    const votDelegatee = await aaveInstance.getDelegateeByType(user2.address, '0');
+    const votDelegatee = await rexInstance.getDelegateeByType(user2.address, '0');
     expect(votDelegatee.toString()).to.be.equal(user4.address, 'Voting delegatee should be user 4');
 
-    const user4PropositionPower = await aaveInstance.getPowerCurrent(user4.address, '1');
+    const user4PropositionPower = await rexInstance.getPowerCurrent(user4.address, '1');
     expect(user4PropositionPower).to.be.equal(
       expectedPropPower,
       'Delegatee should have propostion power from user 2'
     );
-    const user4VotingPower = await aaveInstance.getPowerCurrent(user4.address, '0');
+    const user4VotingPower = await rexInstance.getPowerCurrent(user4.address, '0');
     expect(user4VotingPower).to.be.equal(
       user4ExpectedVotPower,
       'Delegatee should have votinh power from user 2'
     );
 
-    const user2PropositionPower = await aaveInstance.getPowerCurrent(user2.address, '1');
+    const user2PropositionPower = await rexInstance.getPowerCurrent(user2.address, '1');
     expect(user2PropositionPower).to.be.equal('0', 'User 2 should have zero prop power');
-    const user2VotingPower = await aaveInstance.getPowerCurrent(user2.address, '0');
+    const user2VotingPower = await rexInstance.getPowerCurrent(user2.address, '0');
     expect(user2VotingPower).to.be.equal(
       user2ExpectedVotPower,
       'User 2 should still have voting power from user 1 delegation'
@@ -707,11 +707,11 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
     if (!chainId) {
       fail("Current network doesn't have CHAIN ID");
     }
-    const nonce = (await aaveInstance._nonces(user1.address)).toString();
+    const nonce = (await rexInstance._nonces(user1.address)).toString();
     const expiration = MAX_UINT_AMOUNT;
     const msgParams = buildDelegateByTypeParams(
       chainId,
-      aaveInstance.address,
+      rexInstance.address,
       user2.address,
       '0',
       nonce,
@@ -726,7 +726,7 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
 
     // Transmit message via delegateByTypeBySig
     await expect(
-      aaveInstance
+      rexInstance
         .connect(user1.signer)
         .delegateByTypeBySig(user2.address, '0', nonce, expiration, 0, r, s)
     ).to.be.revertedWith('INVALID_SIGNATURE');
@@ -745,7 +745,7 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
     const expiration = MAX_UINT_AMOUNT;
     const msgParams = buildDelegateByTypeParams(
       chainId,
-      aaveInstance.address,
+      rexInstance.address,
       user2.address,
       '0',
       MAX_UINT_AMOUNT, // bad nonce
@@ -760,7 +760,7 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
 
     // Transmit message via delegateByTypeBySig
     await expect(
-      aaveInstance
+      rexInstance
         .connect(user1.signer)
         .delegateByTypeBySig(user2.address, '0', MAX_UINT_AMOUNT, expiration, v, r, s)
     ).to.be.revertedWith('INVALID_NONCE');
@@ -776,11 +776,11 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
     if (!chainId) {
       fail("Current network doesn't have CHAIN ID");
     }
-    const nonce = (await aaveInstance._nonces(user1.address)).toString();
+    const nonce = (await rexInstance._nonces(user1.address)).toString();
     const expiration = '0';
     const msgParams = buildDelegateByTypeParams(
       chainId,
-      aaveInstance.address,
+      rexInstance.address,
       user2.address,
       '0',
       nonce,
@@ -795,7 +795,7 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
 
     // Transmit message via delegateByTypeBySig
     await expect(
-      aaveInstance
+      rexInstance
         .connect(user1.signer)
         .delegateByTypeBySig(user2.address, '0', nonce, expiration, v, r, s)
     ).to.be.revertedWith('INVALID_EXPIRATION');
@@ -810,11 +810,11 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
     if (!chainId) {
       fail("Current network doesn't have CHAIN ID");
     }
-    const nonce = (await aaveInstance._nonces(user2.address)).toString();
+    const nonce = (await rexInstance._nonces(user2.address)).toString();
     const expiration = MAX_UINT_AMOUNT;
     const msgParams = buildDelegateParams(
       chainId,
-      aaveInstance.address,
+      rexInstance.address,
       user4.address,
       nonce,
       expiration
@@ -827,7 +827,7 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
 
     // Transmit tx via delegateBySig
     await expect(
-      aaveInstance.connect(user2.signer).delegateBySig(user4.address, nonce, expiration, '0', r, s)
+      rexInstance.connect(user2.signer).delegateBySig(user4.address, nonce, expiration, '0', r, s)
     ).to.be.revertedWith('INVALID_SIGNATURE');
   });
 
@@ -844,7 +844,7 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
     const expiration = MAX_UINT_AMOUNT;
     const msgParams = buildDelegateParams(
       chainId,
-      aaveInstance.address,
+      rexInstance.address,
       user4.address,
       nonce,
       expiration
@@ -857,7 +857,7 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
 
     // Transmit tx via delegateByTypeBySig
     await expect(
-      aaveInstance.connect(user2.signer).delegateBySig(user4.address, nonce, expiration, v, r, s)
+      rexInstance.connect(user2.signer).delegateBySig(user4.address, nonce, expiration, v, r, s)
     ).to.be.revertedWith('INVALID_NONCE');
   });
 
@@ -870,11 +870,11 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
     if (!chainId) {
       fail("Current network doesn't have CHAIN ID");
     }
-    const nonce = (await aaveInstance._nonces(user2.address)).toString();
+    const nonce = (await rexInstance._nonces(user2.address)).toString();
     const expiration = '0';
     const msgParams = buildDelegateParams(
       chainId,
-      aaveInstance.address,
+      rexInstance.address,
       user4.address,
       nonce,
       expiration
@@ -887,7 +887,7 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
 
     // Transmit tx via delegateByTypeBySig
     await expect(
-      aaveInstance.connect(user2.signer).delegateBySig(user4.address, nonce, expiration, v, r, s)
+      rexInstance.connect(user2.signer).delegateBySig(user4.address, nonce, expiration, v, r, s)
     ).to.be.revertedWith('INVALID_EXPIRATION');
   });
 
@@ -898,34 +898,34 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
     const user2 = users[2];
     const user3 = users[3];
 
-    const user1VotingPower = await aaveInstance.getPowerAtBlock(
+    const user1VotingPower = await rexInstance.getPowerAtBlock(
       user1.address,
       secondActionBlockNumber,
       '0'
     );
-    const user1PropPower = await aaveInstance.getPowerAtBlock(
+    const user1PropPower = await rexInstance.getPowerAtBlock(
       user1.address,
       secondActionBlockNumber,
       '1'
     );
 
-    const user2VotingPower = await aaveInstance.getPowerAtBlock(
+    const user2VotingPower = await rexInstance.getPowerAtBlock(
       user2.address,
       secondActionBlockNumber,
       '0'
     );
-    const user2PropPower = await aaveInstance.getPowerAtBlock(
+    const user2PropPower = await rexInstance.getPowerAtBlock(
       user2.address,
       secondActionBlockNumber,
       '1'
     );
 
-    const user3VotingPower = await aaveInstance.getPowerAtBlock(
+    const user3VotingPower = await rexInstance.getPowerAtBlock(
       user3.address,
       secondActionBlockNumber,
       '0'
     );
-    const user3PropPower = await aaveInstance.getPowerAtBlock(
+    const user3PropPower = await rexInstance.getPowerAtBlock(
       user3.address,
       secondActionBlockNumber,
       '1'
@@ -974,18 +974,18 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
     } = testEnv;
 
     // Reset delegations
-    await aaveInstance.connect(user1.signer).delegate(user1.address);
-    await aaveInstance.connect(receiver.signer).delegate(receiver.address);
+    await rexInstance.connect(user1.signer).delegate(user1.address);
+    await rexInstance.connect(receiver.signer).delegate(receiver.address);
 
-    const user1PriorBalance = await aaveInstance.balanceOf(user1.address);
-    const receiverPriorPower = await aaveInstance.getPowerCurrent(receiver.address, '0');
-    const user1PriorPower = await aaveInstance.getPowerCurrent(user1.address, '0');
+    const user1PriorBalance = await rexInstance.balanceOf(user1.address);
+    const receiverPriorPower = await rexInstance.getPowerCurrent(receiver.address, '0');
+    const user1PriorPower = await rexInstance.getPowerCurrent(user1.address, '0');
 
     // Deploy double transfer helper
-    const doubleTransferHelper = await deployDoubleTransferHelper(aaveInstance.address);
+    const doubleTransferHelper = await deployDoubleTransferHelper(rexInstance.address);
 
     await waitForTx(
-      await aaveInstance
+      await rexInstance
         .connect(user1.signer)
         .transfer(doubleTransferHelper.address, user1PriorBalance)
     );
@@ -997,8 +997,8 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
         .doubleSend(receiver.address, user1PriorBalance.sub(parseEther('1')), parseEther('1'))
     );
 
-    const receiverCurrentPower = await aaveInstance.getPowerCurrent(receiver.address, '0');
-    const user1CurrentPower = await aaveInstance.getPowerCurrent(user1.address, '0');
+    const receiverCurrentPower = await rexInstance.getPowerCurrent(receiver.address, '0');
+    const user1CurrentPower = await rexInstance.getPowerCurrent(user1.address, '0');
 
     expect(receiverCurrentPower).to.be.equal(
       user1PriorPower.add(receiverPriorPower),

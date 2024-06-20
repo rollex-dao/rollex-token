@@ -3,24 +3,20 @@ pragma solidity 0.7.5;
 
 import {SafeMath} from '../../open-zeppelin/SafeMath.sol';
 import {ERC20} from '../../open-zeppelin/ERC20.sol';
-import {
-  IGovernancePowerDelegationToken
-} from '../../interfaces/IGovernancePowerDelegationToken.sol';
+import {IGovernancePowerDelegationToken} from '../../interfaces/IGovernancePowerDelegationToken.sol';
 
 /**
- * @notice implementation of the AAVE token contract
- * @author Aave
+ * @notice implementation of the REX token contract
+ * @author Rex
  */
 abstract contract GovernancePowerDelegationERC20 is ERC20, IGovernancePowerDelegationToken {
   using SafeMath for uint256;
   /// @notice The EIP-712 typehash for the delegation struct used by the contract
-  bytes32 public constant DELEGATE_BY_TYPE_TYPEHASH = keccak256(
-    'DelegateByType(address delegatee,uint256 type,uint256 nonce,uint256 expiry)'
-  );
+  bytes32 public constant DELEGATE_BY_TYPE_TYPEHASH =
+    keccak256('DelegateByType(address delegatee,uint256 type,uint256 nonce,uint256 expiry)');
 
-  bytes32 public constant DELEGATE_TYPEHASH = keccak256(
-    'Delegate(address delegatee,uint256 nonce,uint256 expiry)'
-  );
+  bytes32 public constant DELEGATE_TYPEHASH =
+    keccak256('Delegate(address delegatee,uint256 nonce,uint256 expiry)');
 
   /// @dev snapshot of a value on a specific block, used for votes
   struct Snapshot {
@@ -50,12 +46,10 @@ abstract contract GovernancePowerDelegationERC20 is ERC20, IGovernancePowerDeleg
    * @dev returns the delegatee of an user
    * @param delegator the address of the delegator
    **/
-  function getDelegateeByType(address delegator, DelegationType delegationType)
-    external
-    override
-    view
-    returns (address)
-  {
+  function getDelegateeByType(
+    address delegator,
+    DelegationType delegationType
+  ) external view override returns (address) {
     (, , mapping(address => address) storage delegates) = _getDelegationDataByType(delegationType);
 
     return _getDelegatee(delegator, delegates);
@@ -66,12 +60,10 @@ abstract contract GovernancePowerDelegationERC20 is ERC20, IGovernancePowerDeleg
    * power delegated at the time of the last snapshot
    * @param user the user
    **/
-  function getPowerCurrent(address user, DelegationType delegationType)
-    external
-    override
-    view
-    returns (uint256)
-  {
+  function getPowerCurrent(
+    address user,
+    DelegationType delegationType
+  ) external view override returns (uint256) {
     (
       mapping(address => mapping(uint256 => Snapshot)) storage snapshots,
       mapping(address => uint256) storage snapshotsCounts,
@@ -89,7 +81,7 @@ abstract contract GovernancePowerDelegationERC20 is ERC20, IGovernancePowerDeleg
     address user,
     uint256 blockNumber,
     DelegationType delegationType
-  ) external override view returns (uint256) {
+  ) external view override returns (uint256) {
     (
       mapping(address => mapping(uint256 => Snapshot)) storage snapshots,
       mapping(address => uint256) storage snapshotsCounts,
@@ -102,10 +94,10 @@ abstract contract GovernancePowerDelegationERC20 is ERC20, IGovernancePowerDeleg
   /**
    * @dev returns the total supply at a certain block number
    * used by the voting strategy contracts to calculate the total votes needed for threshold/quorum
-   * In this initial implementation with no AAVE minting, simply returns the current supply
-   * A snapshots mapping will need to be added in case a mint function is added to the AAVE token in the future
+   * In this initial implementation with no REX minting, simply returns the current supply
+   * A snapshots mapping will need to be added in case a mint function is added to the REX token in the future
    **/
-  function totalSupplyAt(uint256 blockNumber) external override view returns (uint256) {
+  function totalSupplyAt(uint256 blockNumber) external view override returns (uint256) {
     return super.totalSupply();
   }
 
@@ -247,14 +239,16 @@ abstract contract GovernancePowerDelegationERC20 is ERC20, IGovernancePowerDeleg
   /**
    * @dev returns the delegation data (snapshot, snapshotsCount, list of delegates) by delegation type
    * NOTE: Ideal implementation would have mapped this in a struct by delegation type. Unfortunately,
-   * the AAVE token and StakeToken already include a mapping for the snapshots, so we require contracts
+   * the REX token and StakeToken already include a mapping for the snapshots, so we require contracts
    * who inherit from this to provide access to the delegation data by overriding this method.
    * @param delegationType the type of delegation
    **/
-  function _getDelegationDataByType(DelegationType delegationType)
+  function _getDelegationDataByType(
+    DelegationType delegationType
+  )
     internal
-    virtual
     view
+    virtual
     returns (
       mapping(address => mapping(uint256 => Snapshot)) storage, //snapshots
       mapping(address => uint256) storage, //snapshots count
@@ -297,11 +291,10 @@ abstract contract GovernancePowerDelegationERC20 is ERC20, IGovernancePowerDeleg
    * @param delegator the address of the user for which return the delegatee
    * @param delegates the array of delegates for a particular type of delegation
    **/
-  function _getDelegatee(address delegator, mapping(address => address) storage delegates)
-    internal
-    view
-    returns (address)
-  {
+  function _getDelegatee(
+    address delegator,
+    mapping(address => address) storage delegates
+  ) internal view returns (address) {
     address previousDelegatee = delegates[delegator];
 
     if (previousDelegatee == address(0)) {

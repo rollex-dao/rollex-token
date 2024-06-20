@@ -14,15 +14,15 @@ export const WAD = Math.pow(10, 18).toString();
 
 export const SUPPORTED_ETHERSCAN_NETWORKS = ['main', 'ropsten', 'kovan'];
 
-export const getAaveTokenDomainSeparatorPerNetwork = (
+export const getRexTokenDomainSeparatorPerNetwork = (
   network: eEthereumNetwork
 ): tEthereumAddress =>
   getParamPerNetwork<tEthereumAddress>(
     {
       [eEthereumNetwork.coverage]:
-        '0x6334ce07fc771d21f0634439a587b364f00756c209bb425d2c4873b672e6d265',
+        '0x5be1fe66564e5cf4f59957603cfe6ec6c58930672f001126ae98399f444467db',
       [eEthereumNetwork.hardhat]:
-        '0xd76d40d21133f42fdacea0d02807309902f26a87ff5b55bb55ac77f881143cc4',
+        '0x5be1fe66564e5cf4f59957603cfe6ec6c58930672f001126ae98399f444467db',
       [eEthereumNetwork.kovan]: '',
       [eEthereumNetwork.ropsten]: '',
       [eEthereumNetwork.main]: '',
@@ -30,8 +30,8 @@ export const getAaveTokenDomainSeparatorPerNetwork = (
     network
   );
 
-// AaveProtoGovernance address as admin of AaveToken and Migrator
-export const getAaveAdminPerNetwork = (network: eEthereumNetwork): tEthereumAddress =>
+// RexProtoGovernance address as admin of RexToken and Migrator
+export const getRexAdminPerNetwork = (network: eEthereumNetwork): tEthereumAddress =>
   getParamPerNetwork<tEthereumAddress>(
     {
       [eEthereumNetwork.coverage]: ZERO_ADDRESS,
@@ -43,7 +43,7 @@ export const getAaveAdminPerNetwork = (network: eEthereumNetwork): tEthereumAddr
     network
   );
 
-export const getLendTokenPerNetwork = (network: eEthereumNetwork): tEthereumAddress =>
+export const getPsysTokenPerNetwork = (network: eEthereumNetwork): tEthereumAddress =>
   getParamPerNetwork<tEthereumAddress>(
     {
       [eEthereumNetwork.coverage]: ZERO_ADDRESS,

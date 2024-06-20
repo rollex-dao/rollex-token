@@ -2,8 +2,8 @@ import rawBRE from 'hardhat';
 
 import {
   getEthersSigners,
-  deployLendToAaveMigrator,
-  deployAaveToken,
+  deployPsysToRexMigrator,
+  deployRexToken,
   deployInitializableAdminUpgradeabilityProxy,
   deployMintableErc20,
   insertContractAddressInDb,
@@ -28,59 +28,59 @@ import {eContractid} from '../helpers/types';
 const buildTestEnv = async (deployer: Signer, secondaryWallet: Signer) => {
   console.time('setup');
 
-  const aaveAdmin = await secondaryWallet.getAddress();
+  const rexAdmin = await secondaryWallet.getAddress();
 
-  const aaveTokenImpl = await deployAaveToken();
+  const rexTokenImpl = await deployRexToken();
 
-  const aaveTokenProxy = await deployInitializableAdminUpgradeabilityProxy();
+  const rexTokenProxy = await deployInitializableAdminUpgradeabilityProxy();
 
-  const mockLendToken = await deployMintableErc20(['LEND token', 'LEND', 18]);
-  await registerContractInJsonDb('LEND', mockLendToken);
+  const mockPsysToken = await deployMintableErc20(['PSYS token', 'PSYS', 18]);
+  await registerContractInJsonDb('PSYS', mockPsysToken);
 
-  const lendToAaveMigratorImpl = await deployLendToAaveMigrator([
-    aaveTokenProxy.address,
-    mockLendToken.address,
+  const psysToRexMigratorImpl = await deployPsysToRexMigrator([
+    rexTokenProxy.address,
+    mockPsysToken.address,
     '1000',
   ]);
 
-  const lendToAaveMigratorProxy = await deployInitializableAdminUpgradeabilityProxy();
+  const psysToRexMigratorProxy = await deployInitializableAdminUpgradeabilityProxy();
 
   const mockTransferHook = await deployMockTransferHook();
 
-  const aaveTokenEncodedInitialize = aaveTokenImpl.interface.encodeFunctionData('initialize', [
-    lendToAaveMigratorProxy.address,
-    aaveAdmin,
+  const rexTokenEncodedInitialize = rexTokenImpl.interface.encodeFunctionData('initialize', [
+    psysToRexMigratorProxy.address,
+    rexAdmin,
     mockTransferHook.address,
   ]);
 
   await waitForTx(
-    await aaveTokenProxy['initialize(address,address,bytes)'](
-      aaveTokenImpl.address,
-      aaveAdmin,
-      aaveTokenEncodedInitialize
+    await rexTokenProxy['initialize(address,address,bytes)'](
+      rexTokenImpl.address,
+      rexAdmin,
+      rexTokenEncodedInitialize
     )
   );
 
   //we will not run the initialize on the migrator - will be executed by the governance to bootstrap the migration
   await waitForTx(
-    await lendToAaveMigratorProxy['initialize(address,address,bytes)'](
-      lendToAaveMigratorImpl.address,
-      aaveAdmin,
+    await psysToRexMigratorProxy['initialize(address,address,bytes)'](
+      psysToRexMigratorImpl.address,
+      rexAdmin,
       '0x'
     )
   );
 
-  await insertContractAddressInDb(eContractid.AaveToken, aaveTokenProxy.address);
+  await insertContractAddressInDb(eContractid.RexToken, rexTokenProxy.address);
 
-  await insertContractAddressInDb(eContractid.LendToAaveMigrator, lendToAaveMigratorProxy.address);
+  await insertContractAddressInDb(eContractid.PsysToRexMigrator, psysToRexMigratorProxy.address);
 
-  await insertContractAddressInDb(eContractid.MintableErc20, mockLendToken.address);
+  await insertContractAddressInDb(eContractid.MintableErc20, mockPsysToken.address);
 
   await insertContractAddressInDb(eContractid.MockTransferHook, mockTransferHook.address);
 
   await insertContractAddressInDb(
-    eContractid.LendToAaveMigratorImpl,
-    lendToAaveMigratorImpl.address
+    eContractid.PsysToRexMigratorImpl,
+    psysToRexMigratorImpl.address
   );
 
   console.timeEnd('setup');
