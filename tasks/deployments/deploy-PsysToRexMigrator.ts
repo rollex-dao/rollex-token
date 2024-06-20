@@ -2,17 +2,17 @@ import {task} from 'hardhat/config';
 import {eContractid} from '../../helpers/types';
 import {
   registerContractInJsonDb,
-  deployLendToAaveMigrator,
+  deployPsysToRexMigrator,
   deployInitializableAdminUpgradeabilityProxy,
-  getAaveToken,
-  getLendToken,
+  getRexToken,
+  getPsysToken,
   deployMintableErc20,
 } from '../../helpers/contracts-helpers';
 import {verify} from 'crypto';
 
-const {LendToAaveMigrator, LendToAaveMigratorImpl, MintableErc20} = eContractid;
+const {PsysToRexMigrator, PsysToRexMigratorImpl, MintableErc20} = eContractid;
 
-task(`deploy-${LendToAaveMigrator}`, `Deploys ${LendToAaveMigrator} contract`)
+task(`deploy-${PsysToRexMigrator}`, `Deploys ${PsysToRexMigrator} contract`)
   .addOptionalParam(
     'lendTokenAddress',
     'The address of the LEND token. If not set, a mocked Mintable token will be deployed.'
@@ -25,7 +25,7 @@ task(`deploy-${LendToAaveMigrator}`, `Deploys ${LendToAaveMigrator} contract`)
       throw new Error('INVALID_CHAIN_ID');
     }
 
-    console.log(`\n- ${LendToAaveMigrator} deployment`);
+    console.log(`\n- ${PsysToRexMigrator} deployment`);
 
     if (!lendTokenAddress) {
       console.log(`\tDeploying ${MintableErc20} to mock LEND token...`);
@@ -33,25 +33,25 @@ task(`deploy-${LendToAaveMigrator}`, `Deploys ${LendToAaveMigrator} contract`)
       await mockedLend.deployTransaction.wait();
     }
 
-    const aaveTokenProxy = await getAaveToken();
-    const lendToken = lendTokenAddress || (await getLendToken()).address;
+    const rexTokenProxy = await getRexToken();
+    const lendToken = lendTokenAddress || (await getPsysToken()).address;
 
     console.log(`\tUsing ${lendToken} address for Lend Token input parameter`);
 
-    console.log(`\tDeploying ${LendToAaveMigrator} Implementation...`);
+    console.log(`\tDeploying ${PsysToRexMigrator} Implementation...`);
 
     const constructorParameters: [string, string, string] = [
-      aaveTokenProxy.address,
+      rexTokenProxy.address,
       lendToken,
       '100',
     ];
-    const lendToAaveMigratorImpl = await deployLendToAaveMigrator(constructorParameters, verify);
-    await registerContractInJsonDb(LendToAaveMigratorImpl, lendToAaveMigratorImpl);
+    const PsysToRexMigratorImpl = await deployPsysToRexMigrator(constructorParameters, verify);
+    await registerContractInJsonDb(PsysToRexMigratorImpl, PsysToRexMigratorImpl);
 
-    console.log(`\tDeploying ${LendToAaveMigrator} Transparent Proxy...`);
+    console.log(`\tDeploying ${PsysToRexMigrator} Transparent Proxy...`);
 
-    const lendToAaveMigratorProxy = await deployInitializableAdminUpgradeabilityProxy(verify);
-    await registerContractInJsonDb(LendToAaveMigrator, lendToAaveMigratorProxy);
+    const PsysToRexMigratorProxy = await deployInitializableAdminUpgradeabilityProxy(verify);
+    await registerContractInJsonDb(PsysToRexMigrator, PsysToRexMigratorProxy);
 
-    console.log(`\tFinished ${LendToAaveMigrator} proxy and implementation deployment`);
+    console.log(`\tFinished ${PsysToRexMigrator} proxy and implementation deployment`);
   });
