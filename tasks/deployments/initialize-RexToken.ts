@@ -59,7 +59,7 @@ task(`initialize-${RexToken}`, `Initialize the ${RexToken} proxy contract`)
     ]);
 
     await waitForTx(
-      await rexTokenProxy.initialize(rexTokenImpl.address, rexAdmin, rexTokenEncodedInitialize)
+      await rexTokenProxy['initialize(address,address,bytes)'](rexTokenImpl.address, rexAdmin, rexTokenEncodedInitialize)
     );
 
     console.log('\tFinished Rex Token and Transparent Proxy initialization');

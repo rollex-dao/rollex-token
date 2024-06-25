@@ -39,13 +39,13 @@ task('main-deployment', 'Deployment in mainnet network')
     // The task will only initialize the proxy contract, not implementation
     await DRE.run(`initialize-${eContractid.RexToken}`, {
       admin: rexAdmin,
-      onlyProxy: true,
+      onlyProxy: false,
     });
 
     // The task will only initialize the proxy contract, not implementation
     await DRE.run(`initialize-${eContractid.PsysToRexMigrator}`, {
       admin: rexAdmin,
-      onlyProxy: true,
+      onlyProxy: false,
     });
 
     console.log('\n✔️ Finished the deployment of the Rex Token Mainnet Enviroment. ✔️');

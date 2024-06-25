@@ -55,7 +55,7 @@ task(`initialize-${PsysToRexMigrator}`, `Initialize the ${PsysToRexMigrator} pro
     console.log('\tInitializing PsysToRexMigrator Proxy and Implementation ');
 
     await waitForTx(
-      await psysToRexMigratorProxy.initialize(
+      await psysToRexMigratorProxy['initialize(address,address,bytes)'](
         psysToRexMigratorImpl.address,
         rexAdmin,
         psysToRexMigratorInitializeEncoded
