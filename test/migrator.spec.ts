@@ -15,7 +15,7 @@ makeSuite('PSYS migrator', (testEnv: TestEnv) => {
 
     expect(await psysToRexMigrator.PSYS()).to.be.equal(psysToken.address, 'Invalid PSYS address');
 
-    expect(await psysToRexMigrator.LEND_REX_RATIO()).to.be.equal('1000', 'Invalid ratio');
+    expect(await psysToRexMigrator.PSYS_REX_RATIO()).to.be.equal('1000', 'Invalid ratio');
   });
 
   it("Check migration isn't started", async () => {
@@ -24,7 +24,7 @@ makeSuite('PSYS migrator', (testEnv: TestEnv) => {
     const migrationStarted = await psysToRexMigrator.migrationStarted();
 
     expect(migrationStarted.toString()).to.be.eq('false');
-    await expect(psysToRexMigrator.migrateFromLEND('1000')).to.be.revertedWith(
+    await expect(psysToRexMigrator.migrateFromPSYS('1000')).to.be.revertedWith(
       'MIGRATION_NOT_STARTED'
     );
   });
@@ -61,7 +61,7 @@ makeSuite('PSYS migrator', (testEnv: TestEnv) => {
 
     await psysToken.connect(user.signer).approve(psysToRexMigrator.address, psysBalance);
 
-    await psysToRexMigrator.connect(user.signer).migrateFromLEND(psysBalance);
+    await psysToRexMigrator.connect(user.signer).migrateFromPSYS(psysBalance);
 
     const psysBalanceAfterMigration = await psysToken.balanceOf(user.address);
     const rexBalanceAfterMigration = await rexToken.balanceOf(user.address);

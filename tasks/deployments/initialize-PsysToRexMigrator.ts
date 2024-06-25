@@ -5,7 +5,7 @@ import {
   getContract,
   getPsysToRexMigrator,
 } from '../../helpers/contracts-helpers';
-import {waitForTx} from '../../helpers/misc-utils';
+import {getDb,DRE, waitForTx} from '../../helpers/misc-utils';
 
 const {PsysToRexMigrator} = eContractid;
 
@@ -26,7 +26,7 @@ task(`initialize-${PsysToRexMigrator}`, `Initialize the ${PsysToRexMigrator} pro
     }
 
     console.log(`\n- ${PsysToRexMigrator} initialization`);
-
+    
     const psysToRexMigratorImpl = await getPsysToRexMigratorImpl();
     const psysToRexMigrator = await getPsysToRexMigrator();
 
@@ -44,7 +44,7 @@ task(`initialize-${PsysToRexMigrator}`, `Initialize the ${PsysToRexMigrator} pro
         `\tWARNING: Not initializing the ${PsysToRexMigrator} implementation, only set REX_ADMIN to Transparent Proxy contract.`
       );
       await waitForTx(
-        await psysToRexMigratorProxy.initialize(psysToRexMigratorImpl.address, rexAdmin, '0x')
+        await psysToRexMigratorProxy['initialize(address,address,bytes)'](psysToRexMigratorImpl.address, rexAdmin, '0x')
       );
       console.log(
         `\tFinished ${PsysToRexMigrator} Proxy initialization, but not ${PsysToRexMigrator} implementation.`

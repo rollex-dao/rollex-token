@@ -115,7 +115,7 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
     // Mint PSYS and migrate
     await psysToken.connect(user.signer).mint(psysBalance);
     await psysToken.connect(user.signer).approve(psysToRexMigrator.address, psysBalance);
-    await psysToRexMigrator.connect(user.signer).migrateFromLEND(psysBalance);
+    await psysToRexMigrator.connect(user.signer).migrateFromPSYS(psysBalance);
 
     // Track current power
     const priorPowerUser = await rexInstance.getPowerCurrent(user.address, '0');
@@ -139,7 +139,7 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
 
     await psysToken.connect(user1.signer).approve(psysToRexMigrator.address, psysBalance);
 
-    await psysToRexMigrator.connect(user1.signer).migrateFromLEND(psysBalance);
+    await psysToRexMigrator.connect(user1.signer).migrateFromPSYS(psysBalance);
 
     const psysBalanceAfterMigration = await psysToken.balanceOf(user1.address);
     const rexBalanceAfterMigration = await rexInstance.balanceOf(user1.address);
@@ -185,7 +185,7 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
 
     await psysToken.connect(user2.signer).approve(psysToRexMigrator.address, psysBalance);
 
-    await psysToRexMigrator.connect(user2.signer).migrateFromLEND(psysBalance);
+    await psysToRexMigrator.connect(user2.signer).migrateFromPSYS(psysBalance);
 
     const user2VotingPower = await rexInstance.getPowerCurrent(user2.address, '0');
     const user2PropPower = await rexInstance.getPowerCurrent(user2.address, '1');
@@ -211,7 +211,7 @@ makeSuite('Delegation', (testEnv: TestEnv) => {
 
     await psysToken.connect(user3.signer).approve(psysToRexMigrator.address, psysBalance);
 
-    await psysToRexMigrator.connect(user3.signer).migrateFromLEND(psysBalance);
+    await psysToRexMigrator.connect(user3.signer).migrateFromPSYS(psysBalance);
 
     const user3VotingPower = await rexInstance.getPowerCurrent(user3.address, '0');
     const user3PropPower = await rexInstance.getPowerCurrent(user3.address, '1');

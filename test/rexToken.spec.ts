@@ -104,7 +104,7 @@ makeSuite('REX token', (testEnv: TestEnv) => {
     await waitForTx(
       await psysToken.approve(psysToRexMigrator.address, ethers.utils.parseEther('2000'))
     );
-    await waitForTx(await psysToRexMigrator.migrateFromLEND(ethers.utils.parseEther('2000')));
+    await waitForTx(await psysToRexMigrator.migrateFromPSYS(ethers.utils.parseEther('2000')));
 
     expect((await rexToken.balanceOf(deployer.address)).toString()).to.be.equal(
       ethers.utils.parseEther('2'),

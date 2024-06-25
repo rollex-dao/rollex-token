@@ -14,11 +14,11 @@ const {PsysToRexMigrator, PsysToRexMigratorImpl, MintableErc20} = eContractid;
 
 task(`deploy-${PsysToRexMigrator}`, `Deploys ${PsysToRexMigrator} contract`)
   .addOptionalParam(
-    'lendTokenAddress',
-    'The address of the LEND token. If not set, a mocked Mintable token will be deployed.'
+    'psysTokenAddress',
+    'The address of the PSYS token. If not set, a mocked Mintable token will be deployed.'
   )
   .addFlag('verify', 'Proceed with the Etherscan verification')
-  .setAction(async ({lendTokenAddress, verify}, localBRE) => {
+  .setAction(async ({psysTokenAddress, verify}, localBRE) => {
     await localBRE.run('set-dre');
 
     if (!localBRE.network.config.chainId) {
@@ -27,26 +27,26 @@ task(`deploy-${PsysToRexMigrator}`, `Deploys ${PsysToRexMigrator} contract`)
 
     console.log(`\n- ${PsysToRexMigrator} deployment`);
 
-    if (!lendTokenAddress) {
-      console.log(`\tDeploying ${MintableErc20} to mock LEND token...`);
-      const mockedLend = await deployMintableErc20(['LEND token', 'LEND', 18]);
-      await mockedLend.deployTransaction.wait();
+    if (!psysTokenAddress) {
+      console.log(`\tDeploying ${MintableErc20} to mock PSYS token...`);
+      const mockedPsys = await deployMintableErc20(['PSYS token', 'PSYS', 18]);
+      await mockedPsys.deployTransaction.wait();
     }
 
     const rexTokenProxy = await getRexToken();
-    const lendToken = lendTokenAddress || (await getPsysToken()).address;
+    const psysToken = psysTokenAddress || (await getPsysToken()).address;
 
-    console.log(`\tUsing ${lendToken} address for Lend Token input parameter`);
+    console.log(`\tUsing ${psysToken} address for Psys Token input parameter`);
 
     console.log(`\tDeploying ${PsysToRexMigrator} Implementation...`);
 
     const constructorParameters: [string, string, string] = [
       rexTokenProxy.address,
-      lendToken,
+      psysToken,
       '100',
     ];
-    const PsysToRexMigratorImpl = await deployPsysToRexMigrator(constructorParameters, verify);
-    await registerContractInJsonDb(PsysToRexMigratorImpl, PsysToRexMigratorImpl);
+    const PsysToRexMigratorImplementation = await deployPsysToRexMigrator(constructorParameters, verify);
+    await registerContractInJsonDb(PsysToRexMigratorImpl, PsysToRexMigratorImplementation);
 
     console.log(`\tDeploying ${PsysToRexMigrator} Transparent Proxy...`);
 
