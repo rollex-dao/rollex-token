@@ -23,8 +23,6 @@ export const getRexTokenDomainSeparatorPerNetwork = (
         '0x5be1fe66564e5cf4f59957603cfe6ec6c58930672f001126ae98399f444467db',
       [eEthereumNetwork.hardhat]:
         '0x5be1fe66564e5cf4f59957603cfe6ec6c58930672f001126ae98399f444467db',
-      [eEthereumNetwork.kovan]: '',
-      [eEthereumNetwork.ropsten]: '',
       [eEthereumNetwork.main]: '',
     },
     network
@@ -36,9 +34,7 @@ export const getRexAdminPerNetwork = (network: eEthereumNetwork): tEthereumAddre
     {
       [eEthereumNetwork.coverage]: ZERO_ADDRESS,
       [eEthereumNetwork.hardhat]: ZERO_ADDRESS,
-      [eEthereumNetwork.kovan]: '0x8134929c3dcb1b8b82f27f53424b959fb82182f2',
-      [eEthereumNetwork.ropsten]: '0xEd93e49A2d75beA505fD4D1A0Dff745f69F2E997',
-      [eEthereumNetwork.main]: '0x8a2Efd9A790199F4c94c6effE210fce0B4724f52',
+      [eEthereumNetwork.main]: '0x4a0e707EbFE106599670ce53cE62E9edA98E4729',
     },
     network
   );
@@ -48,9 +44,7 @@ export const getPsysTokenPerNetwork = (network: eEthereumNetwork): tEthereumAddr
     {
       [eEthereumNetwork.coverage]: ZERO_ADDRESS,
       [eEthereumNetwork.hardhat]: ZERO_ADDRESS,
-      [eEthereumNetwork.kovan]: '0x690eaca024935aaff9b14b9ff9e9c8757a281f3c',
-      [eEthereumNetwork.ropsten]: '0xb47f338ec1e3857bb188e63569aebab036ee67c6',
-      [eEthereumNetwork.main]: '0x80fB784B7eD66730e8b1DBd9820aFD29931aab03',
+      [eEthereumNetwork.main]: '0x48023b16c3e81AA7F6eFFbdEB35Bb83f4f31a8fd',
     },
     network
   );

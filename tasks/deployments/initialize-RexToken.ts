@@ -43,7 +43,7 @@ task(`initialize-${RexToken}`, `Initialize the ${RexToken} proxy contract`)
       console.log(
         `\tWARNING: Not initializing the ${RexToken} implementation, only set REX_ADMIN to Transparent Proxy contract.`
       );
-      await waitForTx(await rexTokenProxy.initialize(rexTokenImpl.address, rexAdmin, '0x'));
+      await waitForTx(await rexTokenProxy['initialize(address,address,bytes)'](rexTokenImpl.address, rexAdmin, '0x'));
       console.log(
         `\tFinished ${RexToken} Proxy initialization, but not ${RexToken} implementation.`
       );
