@@ -1,6 +1,6 @@
 {
   "name": "@pollum-io/rollex-token",
-  "version": "1.0.0",
+  "version": "0.0.2",
   "description": "Rollex ERC20 token",
   "files": [
     "/contracts/**/*.sol"
@@ -26,7 +26,7 @@
     "dev:deploy-PsysToRexMigrator": "hardhat deploy-PsysToRexMigrator",
     "dev:initialize-RexToken": "hardhat initialize-RexToken --admin ${REX_ADMIN:-''}",
     "dev:initialize-PsysToRexMigrator": "hardhat initialize-PsysToRexMigrator --admin ${REX_ADMIN:-''}",
-    "main:deployment": "npm run hardhat-main -- main-deployment --verify",
+    "main:deployment": "npm run hardhat-main -- main-deployment",
     "main:deploy-RexTokenV2": "npm run hardhat-main deploy-RexTokenV2 --verify",
     "main:deploy-RexToken": "npm run hardhat-main deploy-RexToken",
     "main:deploy-PsysToRexMigrator": "npm run hardhat-main -- deploy-PsysToRexMigrator --psys-token-address '0x48023b16c3e81AA7F6eFFbdEB35Bb83f4f31a8fd' --verify",
