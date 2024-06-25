@@ -1,9 +1,10 @@
 {
   "name": "@pollum-io/rollex-token",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Rollex ERC20 token",
   "files": [
-    "/contracts/**/*.sol"
+    "contracts",
+    "artifacts"
   ],
   "scripts": {
     "run-env": "npm i && tail -f /dev/null",
