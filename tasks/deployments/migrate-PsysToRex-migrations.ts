@@ -31,9 +31,9 @@ task(`Psys-Migration`, `Create migration to test the contracts`).setAction(async
   await mockPsys.connect(user1).approve(psysToRexMigrator.address, psysTokenAmount);
   await mockPsys.connect(user2).approve(psysToRexMigrator.address, psysTokenAmount);
 
-  await psysToRexMigrator.connect(user1).migrateFromLEND(halfPsysTokenAmount);
-  await psysToRexMigrator.connect(user1).migrateFromLEND(halfPsysTokenAmount);
-  await psysToRexMigrator.connect(user2).migrateFromLEND(psysTokenAmount);
+  await psysToRexMigrator.connect(user1).migrateFromPSYS(halfPsysTokenAmount);
+  await psysToRexMigrator.connect(user1).migrateFromPSYS(halfPsysTokenAmount);
+  await psysToRexMigrator.connect(user2).migrateFromPSYS(psysTokenAmount);
 
   console.log(`\n- Finished migrating psys balances`);
 });

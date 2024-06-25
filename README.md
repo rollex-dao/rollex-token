@@ -16,14 +16,14 @@ REX also integrates the EIP 2612 `permit` function, that will allow gasless tran
 
 Smart contract for PSYS token holders to execute the migration to the REX token, using part of the initial emission of REX for it.
 
-The contract is covered by a proxy, whose owner will be the REX governance. Once the governance passes the corresponding proposal, the proxy will be connected to the implementation and PSYS holders will be able to call the `migrateFromPsys()` function, which, after PSYS approval, will pull PSYS from the holder wallet and transfer back an equivalent REX amount defined by the `LEND_REX_RATIO` constant.
+The contract is covered by a proxy, whose owner will be the REX governance. Once the governance passes the corresponding proposal, the proxy will be connected to the implementation and PSYS holders will be able to call the `migrateFromPsys()` function, which, after PSYS approval, will pull PSYS from the holder wallet and transfer back an equivalent REX amount defined by the `PSYS_REX_RATIO` constant.
 
-One tradeOff of `migrateFromPsys()` is that, as the REX total supply will be lower than PSYS, the `LEND_REX_RATIO` will be always > 1, causing a loss of precision for amounts of PSYS that are not multiple of `LEND_REX_RATIO`. E.g. a person sending 1.000000000000000022 PSYS, with a `LEND_REX_RATIO` == 100, will receive 0.01 REX, losing the value of the last 22 small units of PSYS.
-Taking into account the current value of PSYS and the future value of REX, a lack of precision for less than LEND_REX_RATIO small units represents a value several orders of magnitude smaller than 0.01\$. We evaluated some potential solutions for this, specifically:
+One tradeOff of `migrateFromPsys()` is that, as the REX total supply will be lower than PSYS, the `PSYS_REX_RATIO` will be always > 1, causing a loss of precision for amounts of PSYS that are not multiple of `PSYS_REX_RATIO`. E.g. a person sending 1.000000000000000022 PSYS, with a `PSYS_REX_RATIO` == 100, will receive 0.01 REX, losing the value of the last 22 small units of PSYS.
+Taking into account the current value of PSYS and the future value of REX, a lack of precision for less than PSYS_REX_RATIO small units represents a value several orders of magnitude smaller than 0.01\$. We evaluated some potential solutions for this, specifically:
 
-1. Rounding half up the amount of REX returned from the migration. This opens up to potential attacks where users might purposely migrate less than LEND_REX_RATIO to obtain more REX as a result of the round up.
+1. Rounding half up the amount of REX returned from the migration. This opens up to potential attacks where users might purposely migrate less than PSYS_REX_RATIO to obtain more REX as a result of the round up.
 2. Returning back the excess PSYS: this would leave PSYS in circulation forever, which is not the expected end result of the migration.
-3. Require the users to migrate only amounts that are multiple of LEND_REX_RATIO: This presents considerable UX friction.
+3. Require the users to migrate only amounts that are multiple of PSYS_REX_RATIO: This presents considerable UX friction.
 
 None of those present a better outcome than the implemented solution.
 
@@ -77,7 +77,7 @@ You can deploy RexToken and PsysToRexMigrator to the mainnet network via the fol
 
 ```
 REX_ADMIN=governance_or_ETH_address
-LEND_TOKEN=psys_token_address
+PSYS_TOKEN=psys_token_address
 npm run main:deployment
 ```
 

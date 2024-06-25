@@ -15,7 +15,7 @@ contract PsysToRexMigrator is VersionedInitializable {
 
   IERC20 public immutable REX;
   IERC20 public immutable PSYS;
-  uint256 public immutable LEND_REX_RATIO;
+  uint256 public immutable PSYS_REX_RATIO;
   uint256 public constant REVISION = 1;
 
   uint256 public _totalPsysMigrated;
@@ -35,7 +35,7 @@ contract PsysToRexMigrator is VersionedInitializable {
   constructor(IERC20 rex, IERC20 psys, uint256 psysRexRatio) public {
     REX = rex;
     PSYS = psys;
-    LEND_REX_RATIO = psysRexRatio;
+    PSYS_REX_RATIO = psysRexRatio;
   }
 
   /**
@@ -55,12 +55,12 @@ contract PsysToRexMigrator is VersionedInitializable {
    * this transaction.
    * @param amount the amount of PSYS to be migrated
    */
-  function migrateFromLEND(uint256 amount) external {
+  function migrateFromPSYS(uint256 amount) external {
     require(lastInitializedRevision != 0, 'MIGRATION_NOT_STARTED');
 
     _totalPsysMigrated = _totalPsysMigrated.add(amount);
     PSYS.transferFrom(msg.sender, address(this), amount);
-    REX.transfer(msg.sender, amount.div(LEND_REX_RATIO));
+    REX.transfer(msg.sender, amount.div(PSYS_REX_RATIO));
     emit PsysMigrated(msg.sender, amount);
   }
 
